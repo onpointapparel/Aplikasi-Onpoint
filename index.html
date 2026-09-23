@@ -1269,8 +1269,8 @@
             const url = getCloudUrl();
             if (!url) throw new Error('URL Google Apps Script belum dikonfigurasi.');
 
-            const timeoutMs = Number(options.timeout || (action === 'login' ? 15000 : 20000));
-            const retries = Number(options.retries ?? (action === 'login' ? 1 : 0));
+            const timeoutMs = Number(options.timeout || (action === 'login' ? 45000 : 30000));
+            const retries = Number(options.retries ?? (action === 'login' ? 2 : 0));
             const body = { action, ...payload };
             if (cloudSessionToken && !body.token) body.token = cloudSessionToken;
 
@@ -1584,6 +1584,21 @@
             }
         }
 
+        let loginKeepAliveTimer = null;
+        function startLoginKeepAlive() {
+            if (loginKeepAliveTimer || !isCloudConfigured()) return;
+            const ping = async () => {
+                const screen = document.getElementById('login-screen');
+                if (!screen || screen.classList.contains('hidden')) return;
+                try { await fetch(getCloudUrl() + '?action=ping&t=' + Date.now(), { method: 'GET', cache: 'no-store' }); } catch (_) {}
+            };
+            ping();
+            loginKeepAliveTimer = setInterval(ping, 4 * 60 * 1000);
+        }
+        function stopLoginKeepAlive() {
+            if (loginKeepAliveTimer) { clearInterval(loginKeepAliveTimer); loginKeepAliveTimer = null; }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             loadFastSyncQueue();
             loadLocalState();
@@ -1594,6 +1609,7 @@
             if(document.getElementById('cs-current-date')) document.getElementById('cs-current-date').innerText = dateStr;
             
             renderAll();
+            startLoginKeepAlive();
             setTimeout(processFastSyncQueue, 300);
 
             // Resume session: user tidak perlu login ulang selama token masih valid.
@@ -3643,16 +3659,56 @@
             return `Invoice_${id}.${ext}`;
         }
 
+        async function getInvoiceExportCanvas() {
+            await ensureInvoiceExportLibraries();
+            const area = document.getElementById('printable-area');
+            if (!area || !area.innerHTML.trim()) throw new Error('Invoice belum tersedia.');
+
+            // printable-area berada di dalam container dengan overflow-y-auto.
+            // html2canvas sebelumnya hanya menangkap tinggi viewport (sebagian invoice).
+            // Clone sementara dibuat dengan tinggi penuh dan overflow visible agar seluruh invoice ikut.
+            const rect = area.getBoundingClientRect();
+            const fullWidth = Math.max(area.scrollWidth, Math.ceil(rect.width));
+            const fullHeight = Math.max(area.scrollHeight, area.offsetHeight);
+
+            return await html2canvas(area, {
+                scale: Math.min(2.5, Math.max(2, window.devicePixelRatio || 1)),
+                useCORS: true,
+                allowTaint: false,
+                backgroundColor: '#ffffff',
+                logging: false,
+                width: fullWidth,
+                height: fullHeight,
+                windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
+                windowHeight: Math.max(window.innerHeight, fullHeight),
+                scrollX: 0,
+                scrollY: 0,
+                onclone: function(doc) {
+                    const cloned = doc.getElementById('printable-area');
+                    if (cloned) {
+                        cloned.style.height = 'auto';
+                        cloned.style.maxHeight = 'none';
+                        cloned.style.overflow = 'visible';
+                        cloned.style.position = 'relative';
+                        cloned.style.width = fullWidth + 'px';
+                        cloned.style.padding = '32px';
+                    }
+                    const modal = doc.getElementById('modalPrint');
+                    if (modal) modal.style.overflow = 'visible';
+                }
+            });
+        }
+
         async function downloadInvoiceJPG() {
             try {
-                await ensureInvoiceExportLibraries();
-                const area = document.getElementById('printable-area');
-                if (!area || !area.innerHTML.trim()) throw new Error('Invoice belum tersedia.');
-                const canvas = await html2canvas(area, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+                const canvas = await getInvoiceExportCanvas();
                 const link = document.createElement('a');
                 link.download = getInvoiceFilename('jpg');
-                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.href = canvas.toDataURL('image/jpeg', 0.96);
+                document.body.appendChild(link);
                 link.click();
+                link.remove();
+                showToast('Invoice JPG berhasil diunduh.', 'success');
             } catch (err) {
                 console.error(err);
                 showToast(err.message || 'Gagal membuat JPG invoice.', 'error');
@@ -3661,33 +3717,39 @@
 
         async function downloadInvoicePDF() {
             try {
-                await ensureInvoiceExportLibraries();
-                const area = document.getElementById('printable-area');
-                if (!area || !area.innerHTML.trim()) throw new Error('Invoice belum tersedia.');
-                const canvas = await html2canvas(area, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+                const canvas = await getInvoiceExportCanvas();
                 const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pdf = new jsPDF('p', 'mm', 'a4', true);
                 const pageWidth = pdf.internal.pageSize.getWidth();
                 const pageHeight = pdf.internal.pageSize.getHeight();
                 const margin = 8;
                 const usableWidth = pageWidth - margin * 2;
-                const imgHeight = canvas.height * usableWidth / canvas.width;
-                let renderedHeight = 0;
-                let page = 0;
-                while (renderedHeight < imgHeight) {
-                    if (page > 0) pdf.addPage();
-                    const sourceY = Math.round(renderedHeight * canvas.width / usableWidth);
-                    const sourceHeight = Math.min(Math.round((pageHeight - margin * 2) * canvas.width / usableWidth), canvas.height - sourceY);
+                const usableHeight = pageHeight - margin * 2;
+                const pxPerMm = canvas.width / usableWidth;
+                const pageCanvasHeight = Math.max(1, Math.floor(usableHeight * pxPerMm));
+
+                let sourceY = 0;
+                let pageIndex = 0;
+                while (sourceY < canvas.height) {
+                    const sourceHeight = Math.min(pageCanvasHeight, canvas.height - sourceY);
                     const slice = document.createElement('canvas');
                     slice.width = canvas.width;
                     slice.height = sourceHeight;
-                    slice.getContext('2d').drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-                    const sliceHeight = sourceHeight * usableWidth / canvas.width;
-                    pdf.addImage(slice.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, usableWidth, sliceHeight);
-                    renderedHeight += (pageHeight - margin * 2);
-                    page++;
+                    const ctx = slice.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, slice.width, slice.height);
+                    ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
+
+                    if (pageIndex > 0) pdf.addPage();
+                    const renderedHeight = sourceHeight / pxPerMm;
+                    pdf.addImage(slice.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableWidth, renderedHeight, undefined, 'FAST');
+
+                    sourceY += sourceHeight;
+                    pageIndex++;
                 }
+
                 pdf.save(getInvoiceFilename('pdf'));
+                showToast('Invoice PDF berhasil diunduh.', 'success');
             } catch (err) {
                 console.error(err);
                 showToast(err.message || 'Gagal membuat PDF invoice.', 'error');
@@ -3941,7 +4003,7 @@
     var body = Object.assign({ action: action }, payload);
     if (typeof cloudSessionToken !== 'undefined' && cloudSessionToken && !body.token) body.token = cloudSessionToken;
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = setTimeout(function(){ if(controller) controller.abort(); }, Number(options.timeout || 20000));
+    var timeout = setTimeout(function(){ if(controller) controller.abort(); }, Number(options.timeout || 45000));
     var response;
     try {
       response = await fetch(url, {
@@ -3978,15 +4040,17 @@
       if (typeof isCloudConfigured === 'function' && isCloudConfigured()) {
         if (typeof cloudSessionToken !== 'undefined') cloudSessionToken='';
         sessionStorage.removeItem('onpoint_cloud_token');
-        var result=await window.cloudRequest('login',{role:role,password:pass},{timeout:20000});
+        var result=await window.cloudRequest('login',{role:role,password:pass},{timeout:45000,retries:2});
         if (!result || !result.token) throw new Error('Login berhasil tetapi token sesi tidak diterima dari server.');
         cloudSessionToken=result.token;
         sessionStorage.setItem('onpoint_cloud_token', cloudSessionToken);
+        sessionStorage.setItem('onpoint_cloud_role', role);
         appData.role=role;
         if (result.user && result.user.name) appData.currentUserName=result.user.name;
         var screen=document.getElementById('login-screen');
         var main=document.getElementById('main-app');
         if(screen) screen.classList.add('hidden');
+        stopLoginKeepAlive();
         if(main) main.classList.remove('hidden');
         var roleName=role==='cs'?'Customer Service':(role==='produksi'?'Divisi Produksi':'Owner Management');
         var badge=document.getElementById('current-user-badge');
