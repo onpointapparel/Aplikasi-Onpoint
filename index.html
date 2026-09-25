@@ -9,8 +9,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script>
@@ -72,6 +70,46 @@
             background: #94a3b8;
         }
     </style>
+    <!-- SUPABASE JS - added for gradual migration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SUPABASE CONFIG - ONPOINT APPAREL V2 -->
+<script>
+const SUPABASE_URL = 'https://cakyadqxpodulyjcrtmn.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_uFHzGhpMhcZZKT5GuOd34Q_-P3wwmJj';
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
+
+function isSupabaseConfigured() {
+    return Boolean(
+        SUPABASE_URL &&
+        !SUPABASE_URL.includes('PASTE_PROJECT_URL_HERE') &&
+        SUPABASE_PUBLISHABLE_KEY &&
+        !SUPABASE_PUBLISHABLE_KEY.includes('sb_publishable_uFHzGhpMhcZZKT5GuOd34Q_-P3wwmJj')
+    );
+}
+
+async function testSupabaseConnection() {
+    if (!isSupabaseConfigured()) {
+        console.warn('Supabase belum dikonfigurasi. Login lama Apps Script tetap digunakan sementara.');
+        return false;
+    }
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .select('user_id')
+            .limit(1);
+        if (error) throw error;
+        console.log('ONPOINT APPAREL: Supabase berhasil terhubung.', data);
+        return true;
+    } catch (error) {
+        console.error('ONPOINT APPAREL: koneksi Supabase gagal.', error);
+        return false;
+    }
+}
+</script>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
 
@@ -191,9 +229,6 @@
                         </h2>
                         <p id="cs-current-date" class="text-sky-200 mt-1 font-medium">Jumat, 4 September 2026</p>
                     </div>
-                    <button onclick="openNewOrderFromWorkspace()" class="bg-white text-brand-700 hover:bg-sky-50 font-extrabold px-5 py-3 rounded-xl shadow-lg text-sm flex items-center gap-2 transition">
-                        <i class="fa-solid fa-cart-plus"></i> Buat Order
-                    </button>
                 </div>
 
                 <!-- CS Quick Stats -->
@@ -1125,10 +1160,6 @@
             <div class="bg-slate-900 text-white p-4 flex justify-between items-center no-print border-b border-slate-700">
                 <h3 class="font-bold text-sm" id="print-modal-title">Dokumen Cetak</h3>
                 <div class="flex gap-2">
-                    <div id="invoice-download-actions" class="hidden flex gap-2">
-                        <button type="button" onclick="downloadInvoicePDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> PDF</button>
-                        <button type="button" onclick="downloadInvoiceJPG()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-file-image"></i> JPG</button>
-                    </div>
                     <button type="button" onclick="printDocument()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-print"></i> Cetak Dokumen</button>
                     <button onclick="closeModal('modalPrint')" class="text-slate-400 hover:text-white px-2"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
@@ -1269,40 +1300,24 @@
             const url = getCloudUrl();
             if (!url) throw new Error('URL Google Apps Script belum dikonfigurasi.');
 
-            const timeoutMs = Number(options.timeout || (action === 'login' ? 45000 : 30000));
-            const retries = Number(options.retries ?? (action === 'login' ? 2 : 0));
             const body = { action, ...payload };
             if (cloudSessionToken && !body.token) body.token = cloudSessionToken;
 
-            let lastError;
-            for (let attempt = 0; attempt <= retries; attempt++) {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), timeoutMs);
-                try {
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(body),
-                        signal: controller.signal
-                    });
-                    const text = await response.text();
-                    let result;
-                    try { result = JSON.parse(text); }
-                    catch (err) { throw new Error('Respons server bukan JSON yang valid.'); }
-                    if (!response.ok || result.ok === false) {
-                        throw new Error(result.error || result.message || `Server error HTTP ${response.status}`);
-                    }
-                    return result;
-                } catch (err) {
-                    lastError = err?.name === 'AbortError'
-                        ? new Error(`Server terlalu lama merespons (>${Math.round(timeoutMs/1000)} detik).`)
-                        : err;
-                    if (attempt < retries) await new Promise(r => setTimeout(r, 800));
-                } finally {
-                    clearTimeout(timer);
-                }
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(body)
+            });
+
+            const text = await response.text();
+            let result;
+            try { result = JSON.parse(text); }
+            catch (err) { throw new Error('Respons server bukan JSON yang valid. Pastikan URL Web App Apps Script benar.'); }
+
+            if (!response.ok || result.ok === false) {
+                throw new Error(result.error || result.message || `Server error HTTP ${response.status}`);
             }
-            throw lastError || new Error('Permintaan ke server gagal.');
+            return result;
         }
 
         function setCloudStatus(text, mode = 'neutral') {
@@ -1362,7 +1377,7 @@
                 const result = await cloudRequest('bootstrap');
                 const d = result.data || {};
 
-                appData.orders = Array.isArray(d.orders) ? d.orders.map(o => ({ ...o, sizes: Array.isArray(o.sizes) ? o.sizes.map(s => ({ category: s.category || 'Dewasa', sleeve: normalizeSleeveValue(s.sleeve), size: s.size || '', qty: Number(s.qty || 0), price: Number(s.price || 0) })) : [] })) : [];
+                appData.orders = Array.isArray(d.orders) ? d.orders : [];
                 appData.expenses = Array.isArray(d.expenses) ? d.expenses.map(x => ({
                     id: x.id || x.expense_id,
                     date: x.date || '',
@@ -1584,21 +1599,6 @@
             }
         }
 
-        let loginKeepAliveTimer = null;
-        function startLoginKeepAlive() {
-            if (loginKeepAliveTimer || !isCloudConfigured()) return;
-            const ping = async () => {
-                const screen = document.getElementById('login-screen');
-                if (!screen || screen.classList.contains('hidden')) return;
-                try { await fetch(getCloudUrl() + '?action=ping&t=' + Date.now(), { method: 'GET', cache: 'no-store' }); } catch (_) {}
-            };
-            ping();
-            loginKeepAliveTimer = setInterval(ping, 4 * 60 * 1000);
-        }
-        function stopLoginKeepAlive() {
-            if (loginKeepAliveTimer) { clearInterval(loginKeepAliveTimer); loginKeepAliveTimer = null; }
-        }
-
         document.addEventListener('DOMContentLoaded', () => {
             loadFastSyncQueue();
             loadLocalState();
@@ -1609,20 +1609,7 @@
             if(document.getElementById('cs-current-date')) document.getElementById('cs-current-date').innerText = dateStr;
             
             renderAll();
-            startLoginKeepAlive();
             setTimeout(processFastSyncQueue, 300);
-
-            // Resume session: user tidak perlu login ulang selama token masih valid.
-            const savedToken = sessionStorage.getItem('onpoint_cloud_token');
-            const savedRole = sessionStorage.getItem('onpoint_cloud_role');
-            if (savedToken && savedRole && isCloudConfigured()) {
-                cloudSessionToken = savedToken;
-                appData.role = savedRole;
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('main-app').classList.remove('hidden');
-                setupNavigation();
-                loadCloudDataAfterLogin().then(ok => { if (ok) { renderAll(); startCSNotificationPolling(); } });
-            }
         });
 
         function saveLocalState() {
@@ -1652,23 +1639,12 @@
             }
         }
 
-        function setLoginBusy(busy, message = 'Menghubungkan...') {
-            const btn = document.querySelector('#form-login button[type="submit"]');
-            if (!btn) return;
-            btn.disabled = busy;
-            btn.classList.toggle('opacity-70', busy);
-            btn.innerHTML = busy
-                ? `<span>${message}</span><i class="fa-solid fa-circle-notch fa-spin"></i>`
-                : `<span>Masuk ke Sistem</span><i class="fa-solid fa-arrow-right"></i>`;
-        }
-
         async function handleLogin(e) {
             e.preventDefault();
             const role = document.getElementById('login-role').value;
             const pass = document.getElementById('login-password').value;
             const errorEl = document.getElementById('login-error');
             errorEl.classList.add('hidden');
-            setLoginBusy(true);
 
             try {
                 if (isCloudConfigured()) {
@@ -1682,17 +1658,12 @@
                     document.getElementById('main-app').classList.remove('hidden');
                     const roleName = role === 'cs' ? 'Customer Service' : (role === 'produksi' ? 'Divisi Produksi' : 'Owner Management');
                     document.getElementById('current-user-badge').innerText = result.user?.name ? `${result.user.name} • ${roleName}` : roleName;
-                    sessionStorage.setItem('onpoint_cloud_role', role);
                     setupNavigation();
-                    setCloudStatus('Mengambil data...', 'neutral');
+                    setCloudStatus('Cloud Connected', 'ok');
+                    await loadCloudDataAfterLogin();
                     renderAll();
-                    showToast(`Login berhasil. Selamat datang, ${roleName}.`, 'success');
-
-                    // Jangan menahan layar login sampai seluruh database selesai dimuat.
-                    // Bootstrap berjalan di background sehingga UI langsung bisa dipakai.
-                    loadCloudDataAfterLogin().then(ok => {
-                        if (ok) { renderAll(); startCSNotificationPolling(); }
-                    });
+                    startCSNotificationPolling();
+                    showToast(`Login cloud berhasil. Selamat datang, ${roleName}.`, 'success');
                     return;
                 }
 
@@ -1705,13 +1676,11 @@
                     document.getElementById('current-user-badge').innerText = roleName;
                     setupNavigation();
                     renderAll();
-                    setLoginBusy(false);
                     showToast(`Selamat datang, Mode ${roleName} (Lokal)`, 'success');
                 } else {
                     errorEl.classList.remove('hidden');
                 }
             } catch (err) {
-                setLoginBusy(false);
                 errorEl.innerText = err.message || 'Login gagal. Periksa koneksi database dan password.';
                 errorEl.classList.remove('hidden');
             }
@@ -1723,7 +1692,6 @@
             document.getElementById('login-password').value = '';
             cloudSessionToken = '';
             sessionStorage.removeItem('onpoint_cloud_token');
-            sessionStorage.removeItem('onpoint_cloud_role');
             stopCSNotificationPolling();
             closeCSNotificationPanel();
         }
@@ -1747,6 +1715,7 @@
             } else if (appData.role === 'cs') {
                 tabs = [
                     { id: 'cs-workspace', label: 'CS Workspace', icon: 'fa-house' },
+                    { id: 'order-baru', label: 'Buat Order', icon: 'fa-cart-plus' },
                     { id: 'design-center', label: 'Design Center', icon: 'fa-palette' },
                     { id: 'daftar-pesanan', label: 'Status Order', icon: 'fa-list-check' },
                     { id: 'crm', label: 'Data Customer', icon: 'fa-address-book' }
@@ -1774,12 +1743,6 @@
             });
 
             switchTab(tabs[0].id);
-        }
-
-        function openNewOrderFromWorkspace() {
-            switchTab('order-baru');
-            resetOrderForm();
-            populateCustomerDatalist();
         }
 
         function switchTab(tabId) {
@@ -2298,15 +2261,21 @@
                 appData.orders.unshift(orderObj);
             }
 
-            // Simpan lokal lebih dahulu agar form tidak menunggu server.
+            try {
+                await saveOrderToCloud(orderObj);
+                // Simpan customer otomatis ke CRM cloud.
+                await saveCustomerToCloud({
+                    id: 'CUS-' + String(orderObj.phone || orderObj.customer).replace(/\D/g, '').slice(-12),
+                    name: orderObj.customer,
+                    phone: orderObj.phone,
+                    notes: ''
+                });
+            } catch (err) {
+                showToast('Order tidak tersimpan ke cloud: ' + err.message, 'error');
+                return;
+            }
+
             saveLocalState();
-            saveOrderToCloud(orderObj);
-            saveCustomerToCloud({
-                id: 'CUS-' + String(orderObj.phone || orderObj.customer).replace(/\D/g, '').slice(-12),
-                name: orderObj.customer,
-                phone: orderObj.phone,
-                notes: ''
-            });
             
             // Generate Invoice silently or print directly
             openPrintModal('invoice', orderObj.id);
@@ -2664,21 +2633,10 @@
             const token = result.token;
             if (!token) throw new Error('Server tidak mengembalikan token approval.');
 
-            // URL approval WA WAJIB membawa token + URL backend Apps Script.
-            // Tanpa parameter api, approval.html tidak tahu harus menghubungi backend mana.
-            const backendUrl = String(
-                (typeof getCloudUrl === 'function' ? getCloudUrl() : (appData.gasUrl || '')) || ''
-            ).trim().replace(/\/$/, '');
-            if (!backendUrl) throw new Error('URL backend Google Apps Script belum dikonfigurasi.');
-            if (!/^https:\/\/script\.google\.com\//i.test(backendUrl)) {
-                throw new Error('URL backend tidak valid. Gunakan URL Web App Apps Script yang berakhiran /exec.');
-            }
-
-            // URL publik memakai domain frontend yang sedang dibuka.
-            // Parameter api sengaja dimasukkan agar link bisa dibuka langsung oleh customer.
+            // URL publik memakai domain frontend yang sedang dibuka, sehingga aman
+            // dipakai baik di Netlify subdomain maupun custom domain.
             const url = new URL('approval.html', window.location.href);
             url.searchParams.set('t', token);
-            url.searchParams.set('api', backendUrl);
             o.approvalToken = token;
             o.approvalStatus = o.approvalStatus || 'Pending';
             o.approvalUrl = url.toString();
@@ -2907,9 +2865,15 @@
             if (o) {
                 const oldStatus = o.status;
                 o.status = newStatus;
-                saveLocalState();
-                saveOrderToCloud(o);
-                showToast(`Status #${id} diperbarui ke ${newStatus}. Sinkronisasi berjalan di background.`, 'success');
+                try {
+                    await saveOrderToCloud(o);
+                    saveLocalState();
+                    showToast(`Status #${id} diperbarui ke ${newStatus}`, 'success');
+                } catch (err) {
+                    o.status = oldStatus;
+                    renderAll();
+                    showToast('Status gagal disimpan ke cloud: ' + err.message, 'error');
+                }
             }
         }
 
@@ -3648,120 +3612,10 @@
             setTimeout(doPrint, 1200);
         }
 
-        async function ensureInvoiceExportLibraries() {
-            if (window.html2canvas && window.jspdf) return true;
-            throw new Error('Library PDF/JPG belum tersedia. Pastikan koneksi internet aktif lalu coba lagi.');
-        }
-
-        function getInvoiceFilename(ext) {
-            const area = document.getElementById('printable-area');
-            const id = area?.querySelector('[data-invoice-id]')?.getAttribute('data-invoice-id') || 'invoice';
-            return `Invoice_${id}.${ext}`;
-        }
-
-        async function getInvoiceExportCanvas() {
-            await ensureInvoiceExportLibraries();
-            const area = document.getElementById('printable-area');
-            if (!area || !area.innerHTML.trim()) throw new Error('Invoice belum tersedia.');
-
-            // printable-area berada di dalam container dengan overflow-y-auto.
-            // html2canvas sebelumnya hanya menangkap tinggi viewport (sebagian invoice).
-            // Clone sementara dibuat dengan tinggi penuh dan overflow visible agar seluruh invoice ikut.
-            const rect = area.getBoundingClientRect();
-            const fullWidth = Math.max(area.scrollWidth, Math.ceil(rect.width));
-            const fullHeight = Math.max(area.scrollHeight, area.offsetHeight);
-
-            return await html2canvas(area, {
-                scale: Math.min(2.5, Math.max(2, window.devicePixelRatio || 1)),
-                useCORS: true,
-                allowTaint: false,
-                backgroundColor: '#ffffff',
-                logging: false,
-                width: fullWidth,
-                height: fullHeight,
-                windowWidth: Math.max(document.documentElement.clientWidth, fullWidth),
-                windowHeight: Math.max(window.innerHeight, fullHeight),
-                scrollX: 0,
-                scrollY: 0,
-                onclone: function(doc) {
-                    const cloned = doc.getElementById('printable-area');
-                    if (cloned) {
-                        cloned.style.height = 'auto';
-                        cloned.style.maxHeight = 'none';
-                        cloned.style.overflow = 'visible';
-                        cloned.style.position = 'relative';
-                        cloned.style.width = fullWidth + 'px';
-                        cloned.style.padding = '32px';
-                    }
-                    const modal = doc.getElementById('modalPrint');
-                    if (modal) modal.style.overflow = 'visible';
-                }
-            });
-        }
-
-        async function downloadInvoiceJPG() {
-            try {
-                const canvas = await getInvoiceExportCanvas();
-                const link = document.createElement('a');
-                link.download = getInvoiceFilename('jpg');
-                link.href = canvas.toDataURL('image/jpeg', 0.96);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                showToast('Invoice JPG berhasil diunduh.', 'success');
-            } catch (err) {
-                console.error(err);
-                showToast(err.message || 'Gagal membuat JPG invoice.', 'error');
-            }
-        }
-
-        async function downloadInvoicePDF() {
-            try {
-                const canvas = await getInvoiceExportCanvas();
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4', true);
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const margin = 8;
-                const usableWidth = pageWidth - margin * 2;
-                const usableHeight = pageHeight - margin * 2;
-                const pxPerMm = canvas.width / usableWidth;
-                const pageCanvasHeight = Math.max(1, Math.floor(usableHeight * pxPerMm));
-
-                let sourceY = 0;
-                let pageIndex = 0;
-                while (sourceY < canvas.height) {
-                    const sourceHeight = Math.min(pageCanvasHeight, canvas.height - sourceY);
-                    const slice = document.createElement('canvas');
-                    slice.width = canvas.width;
-                    slice.height = sourceHeight;
-                    const ctx = slice.getContext('2d');
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, slice.width, slice.height);
-                    ctx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight);
-
-                    if (pageIndex > 0) pdf.addPage();
-                    const renderedHeight = sourceHeight / pxPerMm;
-                    pdf.addImage(slice.toDataURL('image/jpeg', 0.96), 'JPEG', margin, margin, usableWidth, renderedHeight, undefined, 'FAST');
-
-                    sourceY += sourceHeight;
-                    pageIndex++;
-                }
-
-                pdf.save(getInvoiceFilename('pdf'));
-                showToast('Invoice PDF berhasil diunduh.', 'success');
-            } catch (err) {
-                console.error(err);
-                showToast(err.message || 'Gagal membuat PDF invoice.', 'error');
-            }
-        }
-
         function openPrintModal(type, orderId = null) {
             const area = document.getElementById('printable-area');
             const title = document.getElementById('print-modal-title');
             area.innerHTML = '';
-            const exportActions = document.getElementById('invoice-download-actions');
-            if (exportActions) exportActions.classList.add('hidden');
             
             const today = new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
 
@@ -3769,7 +3623,6 @@
                 const o = appData.orders.find(item => item.id === orderId);
                 if (!o) return;
                 title.innerText = 'Cetak Invoice / Tagihan';
-                if (exportActions) exportActions.classList.remove('hidden');
                 
                 let sisa = o.totalPrice - o.dp;
                 let statusLunas = sisa <= 0 ? '<div class="absolute top-10 right-10 border-4 border-emerald-500 text-emerald-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 opacity-80 uppercase tracking-widest">LUNAS</div>' : '';
@@ -3787,7 +3640,7 @@
                 });
 
                 area.innerHTML = `
-                    <div data-invoice-id="${o.id}" class="relative bg-white font-sans max-w-4xl mx-auto border border-slate-100 shadow-sm p-10 rounded-2xl print:shadow-none print:border-none print:p-0">
+                    <div class="relative bg-white font-sans max-w-4xl mx-auto border border-slate-100 shadow-sm p-10 rounded-2xl print:shadow-none print:border-none print:p-0">
                         ${statusLunas}
                         
                         <!-- Header -->
@@ -3797,9 +3650,8 @@
                                     <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-shirt text-xl"></i></div>
                                     <h1 class="text-3xl font-black text-slate-900 tracking-tight">ONPOINT APPAREL</h1>
                                 </div>
-                                <p class="text-slate-500 text-sm">Blok Pecuk RT34/RW12, Desa Panyindangan Kulon</p>
-                                <p class="text-slate-500 text-sm">Kecamatan Sindang, Kabupaten Indramayu</p>
-                                <p class="text-slate-500 text-sm">HP: 085196326968 | IG: @onpoint.apparel</p>
+                                <p class="text-slate-500 text-sm">Jl. Konveksi No. 123, Bandung, Jawa Barat</p>
+                                <p class="text-slate-500 text-sm">WA: 0812-3456-7890 | IG: @onpoint.apparel</p>
                             </div>
                             <div class="text-right">
                                 <h2 class="text-3xl font-black text-brand-600 mb-1 uppercase tracking-wider">INVOICE</h2>
@@ -3854,11 +3706,7 @@
                             <div class="w-2/3">
                                 <h4 class="text-xs font-bold text-slate-800 uppercase mb-1">Catatan Pesanan:</h4>
                                 <p class="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-lg border border-slate-100 inline-block">${o.notes || 'Tidak ada catatan khusus.'}</p>
-                                <div class="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-3 inline-block">
-                                    <p class="text-[10px] font-bold text-slate-700 uppercase">Rekening Pembayaran</p>
-                                    <p class="text-xs font-black text-slate-900 mt-1">Bank BCA: 3031338873</p>
-                                    
-                                </div>
+                                <p class="text-[10px] text-slate-400 mt-4">*Pembayaran dapat ditransfer ke BCA 1234567890 a.n Onpoint Apparel</p>
                             </div>
                             <div class="text-center w-1/3">
                                 <p class="text-xs text-slate-500 mb-12">Hormat Kami,</p>
@@ -3874,10 +3722,7 @@
                 
                 let sizeBoxes = '';
                 o.sizes.forEach(s => {
-                    const category = s.category || 'Dewasa';
-                    const sleeve = normalizeSleeveValue(s.sleeve);
-                    const sleeveLabel = sleeve === '3/4' ? 'Lengan 3/4' : (sleeve === 'Panjang' ? 'Lengan Panjang' : 'Lengan Pendek');
-                    sizeBoxes += `<div class="border border-slate-300 p-2 text-center rounded"><div class="font-black text-sm">${category}</div><div class="text-[10px] font-bold text-brand-700">${sleeveLabel}</div><div class="font-black text-xl">${s.size}</div><div class="text-xs text-slate-500 font-bold">${s.qty} Pcs</div></div>`;
+                    sizeBoxes += `<div class="border border-slate-300 p-2 text-center rounded"><div class="font-black text-sm">${s.category || "Dewasa"} - ${s.sleeve || "Pendek"}</div><div class="font-black text-xl">${s.size}</div><div class="text-xs text-slate-500 font-bold">${s.qty} Pcs</div></div>`;
                 });
 
                 area.innerHTML = `
@@ -4003,7 +3848,7 @@
     var body = Object.assign({ action: action }, payload);
     if (typeof cloudSessionToken !== 'undefined' && cloudSessionToken && !body.token) body.token = cloudSessionToken;
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = setTimeout(function(){ if(controller) controller.abort(); }, Number(options.timeout || 45000));
+    var timeout = setTimeout(function(){ if(controller) controller.abort(); }, Number(options.timeout || 20000));
     var response;
     try {
       response = await fetch(url, {
@@ -4040,17 +3885,15 @@
       if (typeof isCloudConfigured === 'function' && isCloudConfigured()) {
         if (typeof cloudSessionToken !== 'undefined') cloudSessionToken='';
         sessionStorage.removeItem('onpoint_cloud_token');
-        var result=await window.cloudRequest('login',{role:role,password:pass},{timeout:45000,retries:2});
+        var result=await window.cloudRequest('login',{role:role,password:pass},{timeout:20000});
         if (!result || !result.token) throw new Error('Login berhasil tetapi token sesi tidak diterima dari server.');
         cloudSessionToken=result.token;
         sessionStorage.setItem('onpoint_cloud_token', cloudSessionToken);
-        sessionStorage.setItem('onpoint_cloud_role', role);
         appData.role=role;
         if (result.user && result.user.name) appData.currentUserName=result.user.name;
         var screen=document.getElementById('login-screen');
         var main=document.getElementById('main-app');
         if(screen) screen.classList.add('hidden');
-        stopLoginKeepAlive();
         if(main) main.classList.remove('hidden');
         var roleName=role==='cs'?'Customer Service':(role==='produksi'?'Divisi Produksi':'Owner Management');
         var badge=document.getElementById('current-user-badge');
@@ -4264,3 +4107,189 @@
 </script>
 </body>
 </html>
+<script>
+/* ONPOINT APPAREL - SUPABASE AUTH HYBRID LOGIN (TAHAP 1)
+   Supabase Auth memvalidasi identitas, sementara Apps Script masih dipakai
+   untuk bootstrap/database lama. Ini sengaja dibuat sementara agar migrasi
+   tidak memutus data lama.
+*/
+(function () {
+  const ONPOINT_AUTH_EMAILS = {
+    owner: 'owner@onpointapparel.id',
+    cs: 'cs@onpointapparel.id',
+    produksi: 'produksi@onpointapparel.id'
+  };
+
+  function authEmailForRole(role) {
+    return ONPOINT_AUTH_EMAILS[role] || '';
+  }
+
+  function showAuthLoginError(message) {
+    const el = document.getElementById('login-error');
+    if (el) {
+      el.innerText = message;
+      el.classList.remove('hidden');
+    } else {
+      alert(message);
+    }
+  }
+
+  function setAuthLoginBusy(busy, text) {
+    const form = document.getElementById('form-login');
+    const btn = form ? form.querySelector('button[type="submit"]') : null;
+    if (!btn) return;
+    btn.disabled = !!busy;
+    btn.classList.toggle('opacity-70', !!busy);
+    btn.classList.toggle('cursor-wait', !!busy);
+    if (busy) {
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>' + (text || 'Memproses...') + '</span>';
+    } else {
+      btn.innerHTML = '<span>Masuk ke Sistem</span><i class="fa-solid fa-arrow-right"></i>';
+    }
+  }
+
+  window.handleLogin = async function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const role = document.getElementById('login-role')?.value || 'cs';
+    const pass = document.getElementById('login-password')?.value || '';
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) errorEl.classList.add('hidden');
+
+    if (!pass) {
+      showAuthLoginError('Password wajib diisi.');
+      return false;
+    }
+
+    if (!isSupabaseConfigured()) {
+      showAuthLoginError('Supabase belum terkonfigurasi.');
+      return false;
+    }
+
+    setAuthLoginBusy(true, 'Memverifikasi akun...');
+
+    try {
+      const email = authEmailForRole(role);
+      if (!email) throw new Error('Role login tidak dikenali.');
+
+      // 1. Verifikasi akun melalui Supabase Auth.
+      const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password: pass
+      });
+      if (authError) throw new Error('Login Supabase gagal: ' + authError.message);
+      if (!authData?.session?.access_token) throw new Error('Session Supabase tidak diterima.');
+
+      // 2. Ambil profil role dari public.users.
+      const authUserId = authData.user?.id || '';
+      if (!authUserId) throw new Error('ID user Supabase tidak diterima.');
+
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('users')
+        .select('user_id, auth_user_id, role, name, active')
+        .eq('auth_user_id', authUserId)
+        .eq('role', role)
+        .eq('active', true)
+        .limit(1)
+        .maybeSingle();
+      if (profileError) throw new Error('Profil pengguna Supabase gagal dibaca. Pastikan RLS policy users sudah dibuat: ' + profileError.message);
+      if (!profile) throw new Error('Akun Auth berhasil, tetapi belum terhubung ke public.users untuk role ' + role + '.');
+      if (profile.auth_user_id !== authUserId) throw new Error('auth_user_id tidak cocok dengan akun Auth.');
+
+      // 3. Sementara tetap login ke Apps Script agar bootstrap/database lama
+      //    tetap berjalan. Pada tahap berikutnya bagian ini akan dihapus.
+      if (typeof isCloudConfigured === 'function' && isCloudConfigured()) {
+        const legacyResult = await cloudRequest('login', { role, password: pass }, { timeout: 20000 });
+        if (!legacyResult?.token) throw new Error('Token Apps Script tidak diterima.');
+        cloudSessionToken = legacyResult.token;
+        sessionStorage.setItem('onpoint_cloud_token', cloudSessionToken);
+
+        appData.role = role;
+        appData.currentUserName = profile.name || legacyResult.user?.name || '';
+
+        const screen = document.getElementById('login-screen');
+        const main = document.getElementById('main-app');
+        if (screen) screen.classList.add('hidden');
+        if (main) main.classList.remove('hidden');
+
+        const roleName = role === 'cs' ? 'Customer Service' : (role === 'produksi' ? 'Divisi Produksi' : 'Owner Management');
+        const badge = document.getElementById('current-user-badge');
+        if (badge) badge.innerText = (appData.currentUserName ? appData.currentUserName + ' • ' : '') + roleName;
+
+        if (typeof setupNavigation === 'function') setupNavigation();
+        if (typeof setCloudStatus === 'function') setCloudStatus('Cloud Connected', 'ok');
+
+        if (typeof loadCloudDataAfterLogin === 'function') {
+          await loadCloudDataAfterLogin();
+        }
+        if (typeof renderAll === 'function') renderAll();
+        if (typeof showToast === 'function') showToast('Login Supabase berhasil. Data lama tetap terhubung.', 'success');
+      } else {
+        throw new Error('URL Apps Script belum dikonfigurasi. Tahap ini membutuhkan Apps Script lama sebagai jembatan sementara.');
+      }
+
+      return false;
+    } catch (err) {
+      try { await supabaseClient.auth.signOut(); } catch (_) {}
+      cloudSessionToken = '';
+      sessionStorage.removeItem('onpoint_cloud_token');
+      showAuthLoginError(err?.message || 'Login gagal.');
+      return false;
+    } finally {
+      setAuthLoginBusy(false);
+    }
+  };
+
+  async function restoreSupabaseSession() {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      const session = sessionData?.session;
+      if (!session?.user?.id) return;
+
+      const { data: profile, error } = await supabaseClient
+        .from('users')
+        .select('user_id, auth_user_id, role, name, active')
+        .eq('auth_user_id', session.user.id)
+        .eq('active', true)
+        .limit(1)
+        .maybeSingle();
+      if (error || !profile) return;
+
+      const role = profile.role;
+      if (!['owner','cs','produksi'].includes(role)) return;
+      appData.role = role;
+      appData.currentUserName = profile.name || '';
+      const screen = document.getElementById('login-screen');
+      const main = document.getElementById('main-app');
+      if (screen) screen.classList.add('hidden');
+      if (main) main.classList.remove('hidden');
+      const roleName = role === 'cs' ? 'Customer Service' : (role === 'produksi' ? 'Divisi Produksi' : 'Owner Management');
+      const badge = document.getElementById('current-user-badge');
+      if (badge) badge.innerText = (appData.currentUserName ? appData.currentUserName + ' • ' : '') + roleName;
+      if (typeof setupNavigation === 'function') setupNavigation();
+      if (typeof setCloudStatus === 'function') setCloudStatus('Memulihkan sesi...', 'neutral');
+    } catch (err) {
+      console.warn('Restore Supabase session dilewati:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    restoreSupabaseSession();
+  });
+
+  const oldLogout = window.handleLogout;
+  window.handleLogout = async function () {
+    try { await supabaseClient.auth.signOut(); } catch (_) {}
+    cloudSessionToken = '';
+    sessionStorage.removeItem('onpoint_cloud_token');
+    if (typeof oldLogout === 'function') oldLogout();
+    else {
+      document.getElementById('login-screen')?.classList.remove('hidden');
+      document.getElementById('main-app')?.classList.add('hidden');
+      const pass = document.getElementById('login-password');
+      if (pass) pass.value = '';
+    }
+  };
+})();
+</script>
