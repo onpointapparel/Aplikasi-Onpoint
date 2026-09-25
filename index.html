@@ -147,16 +147,11 @@ async function testSupabaseConnection() {
 
                 <div>
                     <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Password Sistem</label>
-                    <div class="relative">
-                        <input type="password" id="login-password" required placeholder="Masukkan password..." 
-                               class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-4 pr-10 py-3 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none transition" value="cs123">
-                        <i class="fa-solid fa-lock absolute right-3 top-3.5 text-slate-400"></i>
-                    </div>
+                    <input type="password" id="login-password" required autocomplete="current-password" placeholder="Masukkan password" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-brand-500 focus:outline-none transition">
                 </div>
 
-                <div id="login-error" class="hidden text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 text-center font-medium">
-                    Password salah! Silakan coba lagi.
-                </div>
+                <div id="login-error" class="hidden text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-200 text-center font-medium"></div>
+                <div id="login-success" class="hidden text-xs text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200 text-center font-medium"></div>
 
                 <button type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3.5 rounded-xl transition duration-200 shadow-lg shadow-brand-500/30 flex items-center justify-center space-x-2">
                     <span>Masuk ke Sistem</span>
@@ -164,7 +159,7 @@ async function testSupabaseConnection() {
                 </button>
 
                 <div class="text-center text-xs text-slate-400 pt-2 border-t">
-                    Password Default: CS (<code class="text-slate-600">cs123</code>), Produksi (<code class="text-slate-600">prod123</code>), Owner (<code class="text-slate-600">owner123</code>)
+                    Pilih role sesuai akun, masukkan password, lalu tekan <b>Masuk ke Sistem</b>.
                 </div>
             </form>
         </div>
@@ -4291,5 +4286,45 @@ async function testSupabaseConnection() {
       if (pass) pass.value = '';
     }
   };
+})();
+</script>
+<script>
+/* ONPOINT APPAREL - SIMPLE ROLE + PASSWORD LOGIN
+   Login: Role -> Password -> Supabase Auth -> Apps Script bridge sementara.
+*/
+(function(){
+  const originalHandleLogin = window.handleLogin;
+  if (typeof originalHandleLogin !== 'function') return;
+
+  window.handleLogin = async function(e){
+    const role = document.getElementById('login-role')?.value || 'cs';
+    const passEl = document.getElementById('login-password');
+    const errorEl = document.getElementById('login-error');
+    const successEl = document.getElementById('login-success');
+    if (errorEl) { errorEl.classList.add('hidden'); errorEl.textContent=''; }
+    if (successEl) { successEl.classList.add('hidden'); successEl.textContent=''; }
+
+    if (!passEl || !passEl.value.trim()) {
+      if (errorEl) { errorEl.textContent='Password wajib diisi.'; errorEl.classList.remove('hidden'); }
+      passEl?.focus();
+      if (e) e.preventDefault();
+      return false;
+    }
+
+    // Jalankan handler utama yang sudah terhubung dengan Supabase + database lama.
+    return await originalHandleLogin(e);
+  };
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const form=document.getElementById('form-login');
+    const pass=document.getElementById('login-password');
+    if(form && pass){
+      pass.addEventListener('keydown', function(ev){
+        if(ev.key==='Enter') {
+          // Form submit ditangani oleh onsubmit; tidak perlu handler tambahan.
+        }
+      });
+    }
+  });
 })();
 </script>
