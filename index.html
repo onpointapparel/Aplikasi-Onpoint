@@ -259,7 +259,11 @@
                         <h2 class="text-2xl font-bold text-slate-800">Dashboard & Owner Financial Hub</h2>
                         <p class="text-slate-500 text-sm">Ringkasan operasional, performa keuangan, dan status pengerjaan konveksi.</p>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openNewOrderFromWorkspace()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center space-x-2 shadow-sm" title="Buat Order Baru">
+                            <i class="fa-solid fa-cart-plus"></i>
+                            <span>Buat Order Baru</span>
+                        </button>
                         <button onclick="openPasswordSettings()" class="owner-only hidden bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center space-x-2 shadow-sm" title="Pengaturan Password Login">
                             <i class="fa-solid fa-key"></i>
                             <span>Password Setting</span>
@@ -741,6 +745,67 @@
                 </div>
             </section>
 
+            <!-- 7B. VIEW GAJI KARYAWAN -->
+            <section id="view-gaji-karyawan" class="space-y-6 hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Gaji Karyawan</h2>
+                        <p class="text-slate-500 text-sm">Kelola upah borongan Jahit dan Sablon dengan periode, snapshot, pembayaran, dan riwayat.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openPayrollPeriodModal()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-calendar-plus mr-1"></i> Periode Baru</button>
+                        <button onclick="openEmployeeModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-3 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-user-plus mr-1"></i> Karyawan</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Periode Aktif</p>
+                        <p id="payroll-active-period" class="text-lg font-black text-slate-800 mt-1">Belum ada</p>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Total Upah Periode</p>
+                        <p id="payroll-total-period" class="text-lg font-black text-emerald-600 mt-1">Rp0</p>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p class="text-[10px] uppercase font-bold text-slate-400">Belum Dibayar</p>
+                        <p id="payroll-unpaid-period" class="text-lg font-black text-rose-600 mt-1">Rp0</p>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-sm">Periode Penggajian</h3>
+                            <p class="text-[10px] text-slate-400 mt-1">Periode ditutup setelah snapshot selesai agar transaksi tidak dihitung dua kali.</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="payroll-period-select" onchange="selectPayrollPeriod(this.value)" class="border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold"></select>
+                            <button id="payroll-close-period-btn" onclick="closePayrollPeriod()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Tutup Periode</button>
+                        </div>
+                    </div>
+                    <div class="p-4 flex flex-wrap gap-2 border-b border-slate-100">
+                        <button onclick="syncJahitPayroll()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-rotate mr-1"></i> Sync Jahit Selesai</button>
+                        <button onclick="openSablonPayrollModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-paint-roller mr-1"></i> Tambah Borongan Sablon</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-600 uppercase font-semibold border-b">
+                                <tr><th class="p-3">Karyawan</th><th class="p-3">Divisi</th><th class="p-3">Qty</th><th class="p-3">Tarif</th><th class="p-3">Total Upah</th><th class="p-3">Dibayar</th><th class="p-3">Status</th><th class="p-3 text-center">Aksi</th></tr>
+                            </thead>
+                            <tbody id="payroll-summary-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+                        <div><h3 class="font-bold text-slate-800 text-sm">Daftar Karyawan</h3><p class="text-[10px] text-slate-400 mt-1">Tarif Jahit default Rp4.000/pcs dan dapat diubah Owner.</p></div>
+                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-left text-xs"><thead class="bg-slate-50 uppercase text-slate-600"><tr><th class="p-3">Nama</th><th class="p-3">Divisi</th><th class="p-3">Tarif / Pcs</th><th class="p-3">Status</th><th class="p-3 text-center">Aksi</th></tr></thead><tbody id="employee-table-body" class="divide-y divide-slate-100"></tbody></table></div>
+                </div>
+            </section>
+
             <!-- 8. VIEW CRM & DATABASE PELANGGAN -->
             <section id="view-crm" class="space-y-6 hidden">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1197,6 +1262,63 @@
         </div>
     </div>
 
+    <!-- MODAL KARYAWAN -->
+    <div id="modalEmployee" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-slate-900 text-white p-4 flex justify-between items-center"><h3 class="font-bold text-sm">Tambah Karyawan</h3><button onclick="closeModal('modalEmployee')"><i class="fa-solid fa-xmark"></i></button></div>
+            <form onsubmit="handleSaveEmployee(event)" class="p-5 space-y-4 text-xs">
+                <div><label class="font-bold text-slate-700">Nama Karyawan</label><input id="emp-name" required class="w-full border p-2.5 rounded-lg mt-1" placeholder="Nama penjahit / penyablon"></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="font-bold text-slate-700">Divisi</label><select id="emp-type" class="w-full border p-2.5 rounded-lg mt-1"><option value="Jahit">Jahit</option><option value="Sablon">Sablon</option></select></div>
+                    <div><label class="font-bold text-slate-700">Tarif / Pcs</label><input id="emp-rate" type="number" min="0" value="4000" required class="w-full border p-2.5 rounded-lg mt-1"></div>
+                </div>
+                <div><label class="font-bold text-slate-700">Catatan</label><input id="emp-note" class="w-full border p-2.5 rounded-lg mt-1" placeholder="Opsional"></div>
+                <div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeModal('modalEmployee')" class="px-3 py-2 bg-slate-100 rounded-lg font-bold">Batal</button><button class="px-4 py-2 bg-brand-600 text-white rounded-lg font-bold">Simpan Karyawan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PERIODE PAYROLL -->
+    <div id="modalPayrollPeriod" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-brand-700 text-white p-4 flex justify-between items-center"><h3 class="font-bold text-sm">Buat Periode Gaji</h3><button onclick="closeModal('modalPayrollPeriod')"><i class="fa-solid fa-xmark"></i></button></div>
+            <form onsubmit="handleSavePayrollPeriod(event)" class="p-5 space-y-4 text-xs">
+                <div><label class="font-bold text-slate-700">Nama Periode</label><input id="payroll-period-name" required class="w-full border p-2.5 rounded-lg mt-1" placeholder="Contoh: September 2026"></div>
+                <div class="grid grid-cols-2 gap-3"><div><label class="font-bold text-slate-700">Mulai</label><input id="payroll-period-start" type="date" required class="w-full border p-2.5 rounded-lg mt-1"></div><div><label class="font-bold text-slate-700">Selesai</label><input id="payroll-period-end" type="date" required class="w-full border p-2.5 rounded-lg mt-1"></div></div>
+                <div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeModal('modalPayrollPeriod')" class="px-3 py-2 bg-slate-100 rounded-lg font-bold">Batal</button><button class="px-4 py-2 bg-brand-600 text-white rounded-lg font-bold">Buka Periode</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL BORONGAN SABLON -->
+    <div id="modalSablonPayroll" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-purple-700 text-white p-4 flex justify-between items-center"><h3 class="font-bold text-sm">Tambah Borongan Sablon</h3><button onclick="closeModal('modalSablonPayroll')"><i class="fa-solid fa-xmark"></i></button></div>
+            <form onsubmit="handleSaveSablonPayroll(event)" class="p-5 space-y-4 text-xs">
+                <div><label class="font-bold text-slate-700">Karyawan Sablon</label><select id="sablon-employee" required class="w-full border p-2.5 rounded-lg mt-1"></select></div>
+                <div><label class="font-bold text-slate-700">Order / Keterangan</label><input id="sablon-description" required class="w-full border p-2.5 rounded-lg mt-1" placeholder="Contoh: ORD-00125 / Sablon 50 pcs"></div>
+                <div class="grid grid-cols-2 gap-3"><div><label class="font-bold text-slate-700">Jumlah Pcs</label><input id="sablon-qty" type="number" min="1" required class="w-full border p-2.5 rounded-lg mt-1"></div><div><label class="font-bold text-slate-700">Harga / Pcs</label><input id="sablon-rate" type="number" min="0" required class="w-full border p-2.5 rounded-lg mt-1"></div></div>
+                <div><label class="font-bold text-slate-700">Catatan</label><input id="sablon-note" class="w-full border p-2.5 rounded-lg mt-1"></div>
+                <div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeModal('modalSablonPayroll')" class="px-3 py-2 bg-slate-100 rounded-lg font-bold">Batal</button><button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold">Simpan Borongan</button></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL BAYAR GAJI -->
+    <div id="modalPayrollPayment" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-emerald-700 text-white p-4 flex justify-between items-center"><h3 class="font-bold text-sm">Bayar Gaji Karyawan</h3><button onclick="closeModal('modalPayrollPayment')"><i class="fa-solid fa-xmark"></i></button></div>
+            <form onsubmit="handleSavePayrollPayment(event)" class="p-5 space-y-4 text-xs">
+                <input type="hidden" id="payroll-pay-employee"><div class="bg-slate-50 border rounded-xl p-3 space-y-1"><div class="flex justify-between"><span>Total Upah</span><b id="payroll-pay-total">Rp0</b></div><div class="flex justify-between"><span>Sudah Dibayar</span><b id="payroll-pay-paid">Rp0</b></div><div class="flex justify-between border-t pt-1"><span class="font-bold">Sisa</span><b id="payroll-pay-remaining" class="text-rose-600">Rp0</b></div></div>
+                <div class="grid grid-cols-2 gap-3"><div><label class="font-bold text-slate-700">Tanggal</label><input id="payroll-pay-date" type="date" required class="w-full border p-2.5 rounded-lg mt-1"></div><div><label class="font-bold text-slate-700">Nominal</label><input id="payroll-pay-amount" type="number" min="1" required class="w-full border p-2.5 rounded-lg mt-1"></div></div>
+                <div><label class="font-bold text-slate-700">Penerima</label><input id="payroll-pay-recipient" required class="w-full border p-2.5 rounded-lg mt-1"></div>
+                <div><label class="font-bold text-slate-700">Metode</label><select id="payroll-pay-method" class="w-full border p-2.5 rounded-lg mt-1"><option>Cash / Tunai</option><option>Transfer BCA</option><option>Transfer Mandiri</option><option>Transfer BRI</option><option>QRIS</option></select></div>
+                <div><label class="font-bold text-slate-700">Catatan</label><input id="payroll-pay-note" class="w-full border p-2.5 rounded-lg mt-1"></div>
+                <div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeModal('modalPayrollPayment')" class="px-3 py-2 bg-slate-100 rounded-lg font-bold">Batal</button><button class="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold">Simpan Pembayaran</button></div>
+            </form>
+        </div>
+    </div>
+
     <!-- JAVASCRIPT APP ENGINE -->
     <script>
         // CORE DATA STATE
@@ -1274,7 +1396,12 @@
                 { id: 'STK-1', type: 'Kain', name: 'Cotton Combed 30s Hitam', qty: 45, unit: 'Kg' },
                 { id: 'STK-2', type: 'Cat', name: 'Plastisol Super White', qty: 8, unit: 'Kg' }
             ],
-            defects: []
+            defects: [],
+            employees: [],
+            payrollPeriods: [],
+            payrollItems: [],
+            payrollPayments: [],
+            activePayrollPeriodId: ''
         };
 
         let revenueChartInstance = null;
@@ -2041,6 +2168,7 @@
                     { id: 'dashboard', label: 'Dashboard Owner', icon: 'fa-chart-pie' },
                     { id: 'daftar-pesanan', label: 'Semua Pesanan', icon: 'fa-list-check' },
                     { id: 'pengeluaran', label: 'Keuangan & Payroll', icon: 'fa-wallet' },
+                    { id: 'gaji-karyawan', label: 'Gaji Karyawan', icon: 'fa-users-gear' },
                     { id: 'stok', label: 'Stok & PO', icon: 'fa-boxes-stacked' },
                     { id: 'crm', label: 'Database CRM', icon: 'fa-users' },
                     { id: 'produksi-kanban', label: 'Workflow QC', icon: 'fa-diagram-project' }
@@ -2108,6 +2236,7 @@
             }
             if (tabId === 'crm') renderCRM();
             if (tabId === 'design-center') renderDesignCenter();
+            if (tabId === 'gaji-karyawan') { loadPayrollData().catch(err => showToast('Gagal memuat payroll: ' + err.message, 'error')); }
         }
 
         function getDeadlineBadge(deadlineStr) {
@@ -2157,7 +2286,7 @@
                 renderKanban();
                 renderStock();
             }
-            if(appData.role === 'owner') renderExpenses();
+            if(appData.role === 'owner') { renderExpenses(); if (document.getElementById('view-gaji-karyawan') && !document.getElementById('view-gaji-karyawan').classList.contains('hidden')) renderPayroll(); }
             if(appData.role === 'cs' || appData.role === 'owner') renderCRM();
             if(appData.role === 'cs') renderDesignCenter();
         }
@@ -3127,6 +3256,71 @@
             }
         }
 
+
+        /* =========================================================
+         * PAYROLL / GAJI KARYAWAN - OWNER ONLY
+         * =======================================================*/
+        let payrollLoaded = false;
+
+        async function loadPayrollData() {
+            if (appData.role !== 'owner') return;
+            const results = await Promise.all([
+                supabaseClient.from('employees').select('*').order('name'),
+                supabaseClient.from('payroll_periods').select('*').order('start_date', { ascending:false }),
+                supabaseClient.from('payroll_items').select('*').order('created_at', { ascending:false }),
+                supabaseClient.from('payroll_payments').select('*').order('date', { ascending:false })
+            ]);
+            for (const r of results) if (r.error) throw sbError(r.error, 'Gagal memuat data payroll.');
+            appData.employees = (results[0].data || []).map(x => ({id:x.employee_id,name:x.name,type:x.work_type,rate:Number(x.default_rate||0),active:x.active!==false,note:x.note||''}));
+            appData.payrollPeriods = results[1].data || [];
+            appData.payrollItems = results[2].data || [];
+            appData.payrollPayments = results[3].data || [];
+            const open = appData.payrollPeriods.find(p => p.status === 'open');
+            if (!appData.activePayrollPeriodId || !appData.payrollPeriods.some(p => p.period_id === appData.activePayrollPeriodId)) appData.activePayrollPeriodId = open?.period_id || appData.payrollPeriods[0]?.period_id || '';
+            payrollLoaded = true;
+            renderPayroll();
+        }
+
+        function getActivePayrollPeriod() { return appData.payrollPeriods.find(p => p.period_id === appData.activePayrollPeriodId) || null; }
+        function getPayrollItemsFor(periodId) { return appData.payrollItems.filter(x => String(x.period_id) === String(periodId)); }
+        function getPayrollPaidFor(periodId, employeeId) { return appData.payrollPayments.filter(x => String(x.period_id)===String(periodId) && String(x.employee_id)===String(employeeId)).reduce((s,x)=>s+Number(x.amount||0),0); }
+        function getPayrollEmployeeTotal(periodId, employeeId) { return getPayrollItemsFor(periodId).filter(x=>String(x.employee_id)===String(employeeId)).reduce((s,x)=>s+Number(x.amount||0),0); }
+        function payrollStatus(total, paid) { if (total<=0) return 'BELUM ADA'; if (paid<=0) return 'BELUM DIBAYAR'; if (paid<total) return 'SEBAGIAN'; return 'LUNAS'; }
+
+        function renderPayroll() {
+            const periodSelect = document.getElementById('payroll-period-select');
+            const body = document.getElementById('payroll-summary-body');
+            const empBody = document.getElementById('employee-table-body');
+            if (!periodSelect || !body || !empBody) return;
+            periodSelect.innerHTML = appData.payrollPeriods.length ? appData.payrollPeriods.map(p=>`<option value="${p.period_id}" ${p.period_id===appData.activePayrollPeriodId?'selected':''}>${p.name} • ${p.status==='open'?'TERBUKA':'DITUTUP'}</option>`).join('') : '<option value="">Belum ada periode</option>';
+            const period = getActivePayrollPeriod();
+            document.getElementById('payroll-active-period').innerText = period ? `${period.name} (${period.status==='open'?'Terbuka':'Ditutup'})` : 'Belum ada';
+            const items = period ? getPayrollItemsFor(period.period_id) : [];
+            const total = items.reduce((s,x)=>s+Number(x.amount||0),0);
+            const paid = period ? appData.payrollPayments.filter(x=>String(x.period_id)===String(period.period_id)).reduce((s,x)=>s+Number(x.amount||0),0) : 0;
+            document.getElementById('payroll-total-period').innerText = formatRp(total);
+            document.getElementById('payroll-unpaid-period').innerText = formatRp(Math.max(0,total-paid));
+            const closeBtn=document.getElementById('payroll-close-period-btn'); if(closeBtn){closeBtn.disabled=!period||period.status!=='open'; closeBtn.classList.toggle('opacity-50',closeBtn.disabled);}
+            const employees = appData.employees.filter(e=>e.active!==false);
+            body.innerHTML = employees.length && period ? employees.map(e=>{
+                const t=getPayrollEmployeeTotal(period.period_id,e.id), p=getPayrollPaidFor(period.period_id,e.id), r=Math.max(0,t-p), st=payrollStatus(t,p);
+                return `<tr><td class="p-3 font-bold">${e.name}</td><td class="p-3">${e.type}</td><td class="p-3">${items.filter(x=>x.employee_id===e.id).reduce((s,x)=>s+Number(x.qty||0),0)} pcs</td><td class="p-3">${formatRp(e.rate)}</td><td class="p-3 font-black">${formatRp(t)}</td><td class="p-3 font-bold text-emerald-600">${formatRp(p)}</td><td class="p-3"><span class="px-2 py-1 rounded-full text-[9px] font-black ${st==='LUNAS'?'bg-emerald-100 text-emerald-700':st==='SEBAGIAN'?'bg-amber-100 text-amber-700':'bg-rose-100 text-rose-700'}">${st}</span></td><td class="p-3 text-center">${r>0&&period.status==='open'?`<button onclick="openPayrollPaymentModal('${e.id}')" class="px-2 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg font-bold">Bayar</button>`:''}</td></tr>`;
+            }).join('') : `<tr><td colspan="8" class="p-6 text-center text-slate-400">${period?'Belum ada karyawan aktif.':'Buat periode gaji terlebih dahulu.'}</td></tr>`;
+            empBody.innerHTML = employees.length ? employees.map(e=>`<tr><td class="p-3 font-bold">${e.name}</td><td class="p-3">${e.type}</td><td class="p-3 font-bold">${formatRp(e.rate)}</td><td class="p-3">${e.active!==false?'Aktif':'Nonaktif'}</td><td class="p-3 text-center"><button onclick="editEmployeeRate('${e.id}')" class="text-brand-600 font-bold">Ubah Tarif</button></td></tr>`).join('') : `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada karyawan.</td></tr>`;
+        }
+
+        function selectPayrollPeriod(id) { appData.activePayrollPeriodId=id; renderPayroll(); }
+        function openEmployeeModal(){ document.getElementById('emp-name').value=''; document.getElementById('emp-type').value='Jahit'; document.getElementById('emp-rate').value=4000; document.getElementById('emp-note').value=''; openModal('modalEmployee'); }
+        async function handleSaveEmployee(e){ e.preventDefault(); const id='EMP-'+Date.now(); const row={employee_id:id,name:document.getElementById('emp-name').value.trim(),work_type:document.getElementById('emp-type').value,default_rate:Number(document.getElementById('emp-rate').value||0),active:true,note:document.getElementById('emp-note').value.trim(),created_at:new Date().toISOString(),updated_at:new Date().toISOString()}; const {error}=await supabaseClient.from('employees').insert(row); if(error) return showToast('Gagal menyimpan karyawan: '+error.message,'error'); closeModal('modalEmployee'); await loadPayrollData(); showToast('Karyawan berhasil ditambahkan.','success'); }
+        async function editEmployeeRate(id){ const emp=appData.employees.find(e=>e.id===id); if(!emp) return; const val=prompt(`Tarif per pcs untuk ${emp.name}:`, String(emp.rate)); if(val===null) return; const rate=Number(val); if(!Number.isFinite(rate)||rate<0) return showToast('Tarif tidak valid.','error'); const {error}=await supabaseClient.from('employees').update({default_rate:rate,updated_at:new Date().toISOString()}).eq('employee_id',id); if(error) return showToast('Gagal mengubah tarif: '+error.message,'error'); await loadPayrollData(); showToast('Tarif berhasil diubah.','success'); }
+        function openPayrollPeriodModal(){ const now=new Date(), y=now.getFullYear(), m=String(now.getMonth()+1).padStart(2,'0'); document.getElementById('payroll-period-name').value=now.toLocaleDateString('id-ID',{month:'long',year:'numeric'}); document.getElementById('payroll-period-start').value=`${y}-${m}-01`; document.getElementById('payroll-period-end').value=new Date(y,now.getMonth()+1,0).toISOString().slice(0,10); openModal('modalPayrollPeriod'); }
+        async function handleSavePayrollPeriod(e){ e.preventDefault(); const row={period_id:'PAYPER-'+Date.now(),name:document.getElementById('payroll-period-name').value.trim(),start_date:document.getElementById('payroll-period-start').value,end_date:document.getElementById('payroll-period-end').value,status:'open',created_by:appData.currentUserName||'OWNER',created_at:new Date().toISOString()}; const {error}=await supabaseClient.from('payroll_periods').insert(row); if(error) return showToast('Gagal membuat periode: '+error.message,'error'); closeModal('modalPayrollPeriod'); await loadPayrollData(); appData.activePayrollPeriodId=row.period_id; renderPayroll(); showToast('Periode gaji berhasil dibuka.','success'); }
+        async function closePayrollPeriod(){ const p=getActivePayrollPeriod(); if(!p||p.status!=='open') return; const ok=confirm(`Tutup periode ${p.name}? Setelah ditutup, snapshot periode tidak boleh ditambah.`); if(!ok)return; const {error}=await supabaseClient.from('payroll_periods').update({status:'closed',closed_at:new Date().toISOString(),closed_by:appData.currentUserName||'OWNER'}).eq('period_id',p.period_id); if(error)return showToast('Gagal menutup periode: '+error.message,'error'); await loadPayrollData(); showToast('Periode berhasil ditutup.','success'); }
+        async function syncJahitPayroll(){ const p=getActivePayrollPeriod(); if(!p||p.status!=='open') return showToast('Pilih periode yang masih terbuka.','error'); const jahit=appData.employees.filter(e=>e.active!==false&&e.type==='Jahit'); if(!jahit.length)return showToast('Tambahkan karyawan divisi Jahit terlebih dahulu.','error'); if(jahit.length>1){ const list=jahit.map((e,i)=>`${i+1}. ${e.name}`).join('\n'); const idx=Number(prompt('Pilih karyawan Jahit untuk sinkronisasi:\n'+list,'1'))-1; if(!jahit[idx])return; var emp=jahit[idx]; } else var emp=jahit[0]; const orders=appData.orders.filter(o=>o.status==='Selesai / Lunas'); if(!orders.length)return showToast('Belum ada order dengan status Selesai / Lunas untuk disinkronkan.','info'); let added=0; for(const o of orders){ const sourceKey=`JAHIT:${o.id}:${emp.id}`; if(appData.payrollItems.some(x=>x.source_key===sourceKey)) continue; const row={item_id:'PITEM-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),period_id:p.period_id,employee_id:emp.id,source_type:'Jahit Otomatis',source_key:sourceKey,order_id:o.id,description:`${o.id} • ${o.customer||''}`,qty:Number(o.totalQty||0),rate:Number(emp.rate||4000),amount:Number(o.totalQty||0)*Number(emp.rate||4000),note:'Sinkron dari order selesai',created_at:new Date().toISOString(),created_by:appData.currentUserName||'OWNER'}; const {error}=await supabaseClient.from('payroll_items').insert(row); if(error && !String(error.message||'').toLowerCase().includes('duplicate')) return showToast('Gagal sync '+o.id+': '+error.message,'error'); if(!error) added++; } await loadPayrollData(); showToast(`${added} order Jahit berhasil masuk ke snapshot periode.`,'success'); }
+        function openSablonPayrollModal(){ const p=getActivePayrollPeriod(); if(!p||p.status!=='open') return showToast('Pilih periode yang masih terbuka.','error'); const emps=appData.employees.filter(e=>e.active!==false&&e.type==='Sablon'); if(!emps.length)return showToast('Tambahkan karyawan divisi Sablon terlebih dahulu.','error'); document.getElementById('sablon-employee').innerHTML=emps.map(e=>`<option value="${e.id}">${e.name}</option>`).join(''); document.getElementById('sablon-description').value=''; document.getElementById('sablon-qty').value=''; document.getElementById('sablon-rate').value=emps[0].rate||0; document.getElementById('sablon-note').value=''; openModal('modalSablonPayroll'); }
+        async function handleSaveSablonPayroll(e){ e.preventDefault(); const p=getActivePayrollPeriod(); if(!p||p.status!=='open')return showToast('Periode sudah ditutup.','error'); const employeeId=document.getElementById('sablon-employee').value, qty=Number(document.getElementById('sablon-qty').value), rate=Number(document.getElementById('sablon-rate').value), desc=document.getElementById('sablon-description').value.trim(); if(qty<=0||rate<0||!desc)return showToast('Lengkapi data borongan Sablon.','error'); const sourceKey=`SABLON:${p.period_id}:${employeeId}:${Date.now()}`; const row={item_id:'PITEM-'+Date.now(),period_id:p.period_id,employee_id:employeeId,source_type:'Sablon Manual',source_key:sourceKey,order_id:'',description:desc,qty,rate,amount:qty*rate,note:document.getElementById('sablon-note').value.trim(),created_at:new Date().toISOString(),created_by:appData.currentUserName||'OWNER'}; const {error}=await supabaseClient.from('payroll_items').insert(row); if(error)return showToast('Gagal menyimpan borongan Sablon: '+error.message,'error'); closeModal('modalSablonPayroll'); await loadPayrollData(); showToast('Borongan Sablon berhasil ditambahkan.','success'); }
+        function openPayrollPaymentModal(employeeId){ const p=getActivePayrollPeriod(), e=appData.employees.find(x=>x.id===employeeId); if(!p||!e)return; const total=getPayrollEmployeeTotal(p.period_id,employeeId), paid=getPayrollPaidFor(p.period_id,employeeId), rem=Math.max(0,total-paid); if(rem<=0)return showToast('Gaji karyawan ini sudah LUNAS.','info'); document.getElementById('payroll-pay-employee').value=employeeId; document.getElementById('payroll-pay-total').innerText=formatRp(total); document.getElementById('payroll-pay-paid').innerText=formatRp(paid); document.getElementById('payroll-pay-remaining').innerText=formatRp(rem); document.getElementById('payroll-pay-date').value=new Date().toISOString().slice(0,10); document.getElementById('payroll-pay-amount').value=rem; document.getElementById('payroll-pay-recipient').value=e.name; document.getElementById('payroll-pay-note').value=''; openModal('modalPayrollPayment'); }
+        async function handleSavePayrollPayment(e){ e.preventDefault(); const p=getActivePayrollPeriod(); const employeeId=document.getElementById('payroll-pay-employee').value; const total=getPayrollEmployeeTotal(p.period_id,employeeId), paid=getPayrollPaidFor(p.period_id,employeeId), amount=Number(document.getElementById('payroll-pay-amount').value); if(amount<=0||amount>total-paid)return showToast('Nominal pembayaran tidak valid.','error'); const row={payment_id:'PAYROLLPAY-'+Date.now(),period_id:p.period_id,employee_id:employeeId,date:document.getElementById('payroll-pay-date').value,amount,recipient:document.getElementById('payroll-pay-recipient').value.trim(),method:document.getElementById('payroll-pay-method').value,note:document.getElementById('payroll-pay-note').value.trim(),created_by:appData.currentUserName||'OWNER',created_at:new Date().toISOString()}; const {error}=await supabaseClient.from('payroll_payments').insert(row); if(error)return showToast('Gagal menyimpan pembayaran gaji: '+error.message,'error'); closeModal('modalPayrollPayment'); await loadPayrollData(); showToast('Pembayaran gaji berhasil dicatat.','success'); }
 
         function filterWorkList(stage) {
             appData.activeWorkFilter = stage;
