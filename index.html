@@ -930,22 +930,59 @@
                 
                 <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
                     <div class="flex justify-between text-xs"><span class="text-slate-500">Total Order:</span> <strong id="pay-total-val" class="text-slate-800">Rp0</strong></div>
-                    <div class="flex justify-between text-xs"><span class="text-slate-500">Telah Dibayar (DP):</span> <strong id="pay-dp-val" class="text-slate-800">Rp0</strong></div>
+                    <div class="flex justify-between text-xs"><span class="text-slate-500">Total Sudah Dibayar:</span> <strong id="pay-dp-val" class="text-slate-800">Rp0</strong></div>
                     <div class="flex justify-between text-xs pt-1 border-t border-slate-200 mt-1"><span class="text-slate-500 font-bold">Sisa Tagihan:</span> <strong id="pay-sisa-val" class="text-rose-600 text-base font-black">Rp0</strong></div>
                 </div>
 
                 <div>
-                    <label class="font-bold text-slate-700 text-xs block mb-1">Tambah Nominal Pembayaran (Rp)</label>
-                    <input type="number" id="pay-amount-input" required class="w-full border p-2 rounded-lg" placeholder="Masukkan jumlah bayar">
+                    <label class="font-bold text-slate-700 text-xs block mb-1">Nama Pemberi Pembayaran</label>
+                    <input type="text" id="pay-payer-name" required class="w-full border p-2 rounded-lg" placeholder="Nama customer / pemberi DP">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="font-bold text-slate-700 text-xs block mb-1">Tanggal Pembayaran</label>
+                        <input type="date" id="pay-date-input" required class="w-full border p-2 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="font-bold text-slate-700 text-xs block mb-1">Jenis Pembayaran</label>
+                        <select id="pay-type-input" class="w-full border p-2 rounded-lg text-xs">
+                            <option value="DP">DP</option>
+                            <option value="Cicilan">Cicilan</option>
+                            <option value="Pelunasan">Pelunasan</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="font-bold text-slate-700 text-xs block mb-1">Nominal Pembayaran (Rp)</label>
+                    <input type="number" id="pay-amount-input" min="1" required class="w-full border p-2 rounded-lg" placeholder="Masukkan jumlah bayar">
                 </div>
                 
                 <div>
-                    <label class="font-bold text-slate-700 text-xs block mb-1">Metode / Keterangan</label>
+                    <label class="font-bold text-slate-700 text-xs block mb-1">Metode Pembayaran</label>
                     <select id="pay-method-input" class="w-full border p-2 rounded-lg text-xs">
                         <option value="Transfer BCA">Transfer BCA</option>
                         <option value="Transfer Mandiri">Transfer Mandiri</option>
                         <option value="Cash / Tunai">Cash / Tunai</option>
+                        <option value="Transfer BRI">Transfer BRI</option>
+                        <option value="QRIS">QRIS</option>
                     </select>
+                </div>
+
+                <div>
+                    <label class="font-bold text-slate-700 text-xs block mb-1">Catatan</label>
+                    <input type="text" id="pay-note-input" class="w-full border p-2 rounded-lg" placeholder="Contoh: DP tahap 2 / pelunasan">
+                </div>
+
+                <div class="border border-slate-200 rounded-xl overflow-hidden">
+                    <div class="bg-slate-50 px-3 py-2 border-b flex justify-between items-center">
+                        <span class="font-bold text-xs text-slate-700">Riwayat Pembayaran</span>
+                        <span id="pay-status-val" class="text-[10px] font-black px-2 py-1 rounded-full bg-amber-100 text-amber-700">BELUM BAYAR</span>
+                    </div>
+                    <div id="pay-history-list" class="max-h-40 overflow-y-auto divide-y divide-slate-100">
+                        <div class="p-3 text-center text-[10px] text-slate-400">Belum ada pembayaran.</div>
+                    </div>
                 </div>
 
                 <div class="pt-3 border-t">
@@ -1339,9 +1376,52 @@
                 deadline: o.deadline || '',
                 sizes,
                 payments: (payments || []).filter(x => String(x.order_id) === String(o.order_id)).map(x => ({
-                    id: x.payment_id, date: x.date, amount: Number(x.amount || 0), method: x.method || '', note: x.note || ''
+                    id: x.payment_id,
+                    date: x.date,
+                    amount: Number(x.amount || 0),
+                    method: x.method || '',
+                    note: x.note || '',
+                    payerName: x.payer_name || '',
+                    paymentType: x.payment_type || ''
                 }))
             };
+        }
+
+        function getOrderTotalPaid(o) {
+            const tx = Array.isArray(o?.payments) ? o.payments : [];
+            if (tx.length) return tx.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+            return Number(o?.dp || 0);
+        }
+
+        function getPaymentStatus(o) {
+            const total = Number(o?.totalPrice || 0);
+            const paid = getOrderTotalPaid(o);
+            if (paid <= 0) return 'BELUM BAYAR';
+            if (paid >= total) return 'LUNAS';
+            if (paid > 0) return 'CICILAN';
+            return 'BELUM BAYAR';
+        }
+
+        function renderPaymentHistory(o) {
+            const el = document.getElementById('pay-history-list');
+            if (!el) return;
+            const payments = Array.isArray(o?.payments) ? [...o.payments].sort((a,b) => String(b.date || '').localeCompare(String(a.date || ''))) : [];
+            if (!payments.length) {
+                el.innerHTML = '<div class="p-3 text-center text-[10px] text-slate-400">Belum ada pembayaran.</div>';
+                return;
+            }
+            el.innerHTML = payments.map(p => `
+                <div class="p-2.5">
+                    <div class="flex justify-between gap-2 items-start">
+                        <div class="min-w-0">
+                            <div class="font-bold text-[10px] text-slate-700 truncate">${p.payerName || 'Customer'}</div>
+                            <div class="text-[9px] text-slate-400">${p.date || '-'} • ${p.paymentType || 'Pembayaran'} • ${p.method || '-'}</div>
+                            ${p.note ? `<div class="text-[9px] text-slate-500 mt-0.5">${p.note}</div>` : ''}
+                        </div>
+                        <div class="font-black text-[10px] text-emerald-600 whitespace-nowrap">${formatRp(p.amount)}</div>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function orderToRow(o) {
@@ -1449,7 +1529,7 @@
                 const [table, key, idField] = simple[action];
                 const src = payload[key] || {};
                 let row;
-                if (action === 'savePayment') row = { payment_id:src.id||src.payment_id, order_id:src.orderId||src.order_id, date:src.date||new Date().toISOString().slice(0,10), amount:Number(src.amount||0), method:src.method||'', note:src.note||'', created_by:src.createdBy||appData.currentUserName||'', created_at:src.created_at||new Date().toISOString() };
+                if (action === 'savePayment') row = { payment_id:src.id||src.payment_id, order_id:src.orderId||src.order_id, date:src.date||new Date().toISOString().slice(0,10), amount:Number(src.amount||0), method:src.method||'', note:src.note||'', payer_name:src.payerName||src.payer_name||'', payment_type:src.paymentType||src.payment_type||'', created_by:src.createdBy||appData.currentUserName||'', created_at:src.created_at||new Date().toISOString() };
                 if (action === 'saveExpense') row = { expense_id:src.id||src.expense_id, date:src.date||'', category:src.category||'Operasional', description:src.desc||src.description||'', amount:Number(src.amount||0), created_by:src.createdBy||appData.currentUserName||'', status:src.status||'Approved', created_at:src.created_at||new Date().toISOString(), updated_at:new Date().toISOString() };
                 if (action === 'saveStock') row = { stock_id:src.id||src.stock_id, type:src.type||'', name:src.name||'', qty:Number(src.qty||0), unit:src.unit||'', min_qty:Number(src.minQty??src.min_qty??0), supplier:src.supplier||'', note:src.note||'', updated_at:new Date().toISOString() };
                 if (action === 'saveDefect') row = { defect_id:src.id||src.defect_id, order_id:src.orderId||src.order_id||'', date:src.date||new Date().toISOString().slice(0,10), type:src.type||src.defectType||'', qty:Number(src.qty||0), description:src.description||src.action||'', status:src.status||'Open', created_by:src.createdBy||appData.currentUserName||'', created_at:src.created_at||new Date().toISOString() };
@@ -2086,7 +2166,7 @@
             const activeOrders = appData.orders.filter(o => o.status !== 'Selesai / Lunas');
             const designPending = appData.orders.filter(o => o.status === 'Desain Pending' || o.designStatus === 'Menunggu approval' || o.designStatus === 'Revisi');
             // Mock logic for follow up: unpaid completed orders or old pending orders
-            const followupOrders = appData.orders.filter(o => (o.totalPrice - o.dp > 0 && o.status === 'Selesai / Lunas') || o.status === 'Antrian');
+            const followupOrders = appData.orders.filter(o => (o.totalPrice - getOrderTotalPaid(o) > 0 && o.status === 'Selesai / Lunas') || o.status === 'Antrian');
 
             document.getElementById('cs-stat-order').innerText = activeOrders.length;
             document.getElementById('cs-stat-design').innerText = designPending.length;
@@ -2146,7 +2226,7 @@
 
         function updateCSNotifications(serverUnread = null) {
             const pendingDesigns = appData.orders.filter(o => o.designStatus === 'Menunggu approval' || o.designStatus === 'Revisi' || o.designStatus === 'Belum desain').length;
-            const unpaid = appData.orders.filter(o => o.totalPrice - o.dp > 0 && o.status === 'Selesai / Lunas').length;
+            const unpaid = appData.orders.filter(o => o.totalPrice - getOrderTotalPaid(o) > 0 && o.status === 'Selesai / Lunas').length;
             const approvalUnread = Number(serverUnread == null ? csNotifications.filter(n => !n.readAt).length : serverUnread) || 0;
             const total = pendingDesigns + unpaid + approvalUnread;
             const badge = document.getElementById('global-notif-badge');
@@ -2245,7 +2325,7 @@
 
         function renderDashboard() {
             let totalOmset = appData.orders.reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
-            let cashIn = appData.orders.reduce((sum, o) => sum + Number(o.dp || 0), 0);
+            let cashIn = appData.orders.reduce((sum, o) => sum + getOrderTotalPaid(o), 0);
             let totalHpp = appData.orders.reduce((sum, o) => sum + Number(o.totalHpp || 0), 0);
             let totalExp = appData.expenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + Number(e.amount || 0), 0);
             let receivables = totalOmset - cashIn;
@@ -2559,7 +2639,7 @@
             }
 
             filtered.forEach(o => {
-                const sisa = o.totalPrice - o.dp;
+                const sisa = o.totalPrice - getOrderTotalPaid(o);
                 
                 // Allow CS to edit certain statuses, Produksi edit others. Owner edit all.
                 let statusDropdown = '';
@@ -2979,13 +3059,24 @@
         function openPaymentModal(id) {
             const o = appData.orders.find(item => item.id === id);
             if (!o) return;
-            
+
+            const paid = getOrderTotalPaid(o);
+            const remaining = Math.max(0, Number(o.totalPrice || 0) - paid);
+            const today = new Date().toISOString().split('T')[0];
+
             document.getElementById('pay-order-id').value = id;
             document.getElementById('pay-total-val').innerText = formatRp(o.totalPrice);
-            document.getElementById('pay-dp-val').innerText = formatRp(o.dp);
-            document.getElementById('pay-sisa-val').innerText = formatRp(o.totalPrice - o.dp);
-            document.getElementById('pay-amount-input').value = o.totalPrice - o.dp; // default to remaining
-            
+            document.getElementById('pay-dp-val').innerText = formatRp(paid);
+            document.getElementById('pay-sisa-val').innerText = formatRp(remaining);
+            document.getElementById('pay-amount-input').value = remaining;
+            document.getElementById('pay-payer-name').value = o.customer || '';
+            document.getElementById('pay-date-input').value = today;
+            document.getElementById('pay-type-input').value = paid <= 0 ? 'DP' : (remaining <= 0 ? 'Pelunasan' : 'Cicilan');
+            document.getElementById('pay-method-input').value = 'Transfer BCA';
+            document.getElementById('pay-note-input').value = '';
+            document.getElementById('pay-status-val').innerText = getPaymentStatus(o);
+            renderPaymentHistory(o);
+
             openModal('modalPayment');
         }
 
@@ -2993,18 +3084,46 @@
             e.preventDefault();
             const id = document.getElementById('pay-order-id').value;
             const amount = Number(document.getElementById('pay-amount-input').value);
-            
+            const payerName = document.getElementById('pay-payer-name').value.trim();
+            const date = document.getElementById('pay-date-input').value || new Date().toISOString().split('T')[0];
+            const paymentType = document.getElementById('pay-type-input').value;
+            const method = document.getElementById('pay-method-input').value;
+            const note = document.getElementById('pay-note-input').value.trim();
+
             const o = appData.orders.find(item => item.id === id);
-            if (o && amount > 0) {
-                try {
-                    await savePaymentToCloud({ id: 'PAY-' + Date.now(), orderId: id, amount, method: document.getElementById('pay-method-input').value, date: new Date().toISOString().split('T')[0] });
-                    o.dp += amount;
-                    saveLocalState();
-                    closeModal('modalPayment');
-                    showToast(`Pembayaran Rp${amount.toLocaleString()} untuk ${id} berhasil dicatat.`, 'success');
-                } catch (err) {
-                    showToast('Pembayaran gagal disimpan ke cloud: ' + err.message, 'error');
-                }
+            if (!o) return showToast('Order tidak ditemukan.', 'error');
+            if (!payerName) return showToast('Nama pemberi pembayaran wajib diisi.', 'error');
+            if (!Number.isFinite(amount) || amount <= 0) return showToast('Nominal pembayaran harus lebih dari Rp0.', 'error');
+
+            const paidBefore = getOrderTotalPaid(o);
+            const remaining = Math.max(0, Number(o.totalPrice || 0) - paidBefore);
+            if (remaining <= 0) return showToast('Order ini sudah LUNAS.', 'error');
+            if (amount > remaining) return showToast(`Pembayaran melebihi sisa tagihan ${formatRp(remaining)}.`, 'error');
+
+            const payment = {
+                id: 'PAY-' + Date.now(),
+                orderId: id,
+                amount,
+                method,
+                date,
+                payerName,
+                paymentType,
+                note,
+                createdBy: appData.currentUserName || appData.role.toUpperCase()
+            };
+
+            try {
+                await savePaymentToCloud(payment);
+                if (!Array.isArray(o.payments)) o.payments = [];
+                o.payments.push(payment);
+                o.dp = getOrderTotalPaid(o);
+                saveLocalState();
+                closeModal('modalPayment');
+                scheduleFastRender();
+                const status = getPaymentStatus(o);
+                showToast(`Pembayaran ${formatRp(amount)} berhasil dicatat. Status: ${status}.`, 'success');
+            } catch (err) {
+                showToast('Pembayaran gagal disimpan ke cloud: ' + err.message, 'error');
             }
         }
 
@@ -3141,8 +3260,8 @@
         function sendWAInvoice(id) {
             const o = appData.orders.find(item => item.id === id);
             if (!o) return;
-            const sisa = o.totalPrice - o.dp;
-            const msg = `Halo Kak *${o.customer}*, terima kasih telah order di *Onpoint Apparel*!%0A%0A*ID Order:* ${o.id}%0A*Kain:* ${o.kain}%0A*Sablon:* ${o.sablon}%0A*Total Qty:* ${o.totalQty} Pcs%0A*Total Tagihan:* ${formatRp(o.totalPrice)}%0A*DP Diterima:* ${formatRp(o.dp)}%0A*Sisa Tagihan:* ${formatRp(sisa)}%0A*Status Saat Ini:* ${o.status}%0A%0ATerima kasih atas kepercayaannya!`;
+            const sisa = o.totalPrice - getOrderTotalPaid(o);
+            const msg = `Halo Kak *${o.customer}*, terima kasih telah order di *Onpoint Apparel*!%0A%0A*ID Order:* ${o.id}%0A*Kain:* ${o.kain}%0A*Sablon:* ${o.sablon}%0A*Total Qty:* ${o.totalQty} Pcs%0A*Total Tagihan:* ${formatRp(o.totalPrice)}%0A*DP Diterima:* ${formatRp(getOrderTotalPaid(o))}%0A*Sisa Tagihan:* ${formatRp(sisa)}%0A*Status Saat Ini:* ${o.status}%0A%0ATerima kasih atas kepercayaannya!`;
             window.open(`https://wa.me/${o.phone}?text=${msg}`, '_blank');
         }
 
@@ -3376,7 +3495,7 @@
                 }
                 crmMap[key].orderCount += 1;
                 crmMap[key].ltv += o.totalPrice;
-                crmMap[key].unpaid += (o.totalPrice - o.dp);
+                crmMap[key].unpaid += (o.totalPrice - getOrderTotalPaid(o));
                 crmMap[key].orders.push(o);
                 if(o.createdAt > crmMap[key].lastOrder) crmMap[key].lastOrder = o.createdAt;
             });
@@ -3432,7 +3551,7 @@
                 if (!crmMap[o.phone]) crmMap[o.phone] = { name: o.customer, phone: o.phone, orderCount: 0, ltv: 0, unpaid: 0, orders: [] };
                 crmMap[o.phone].orderCount += 1;
                 crmMap[o.phone].ltv += o.totalPrice;
-                crmMap[o.phone].unpaid += (o.totalPrice - o.dp);
+                crmMap[o.phone].unpaid += (o.totalPrice - getOrderTotalPaid(o));
                 crmMap[o.phone].orders.push(o);
             });
 
@@ -3457,7 +3576,7 @@
             const sortedOrders = [...selectedCrmCustomer.orders].sort((a,b) => (b.createdAt||b.id).localeCompare(a.createdAt||a.id));
             
             sortedOrders.forEach(o => {
-                const sisa = o.totalPrice - o.dp;
+                const sisa = o.totalPrice - getOrderTotalPaid(o);
                 histContainer.innerHTML += `
                     <div class="bg-white border border-slate-200 rounded-xl p-3 flex justify-between items-center hover:shadow-sm transition">
                         <div>
@@ -3983,7 +4102,7 @@
                 title.innerText = 'Cetak Invoice / Tagihan';
                 if (exportActions) exportActions.classList.remove('hidden');
                 
-                let sisa = o.totalPrice - o.dp;
+                let sisa = o.totalPrice - getOrderTotalPaid(o);
                 let statusLunas = sisa <= 0 ? '<div class="absolute top-10 right-10 border-4 border-emerald-500 text-emerald-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 opacity-80 uppercase tracking-widest">LUNAS</div>' : '';
 
                 let sizeRows = '';
@@ -4056,7 +4175,7 @@
                         <div class="flex justify-end mb-10">
                             <div class="w-1/2 space-y-3">
                                 <div class="flex justify-between text-sm"><span class="text-slate-500 font-medium">Subtotal</span><span class="font-bold text-slate-800">${formatRp(o.totalPrice)}</span></div>
-                                <div class="flex justify-between text-sm border-b border-slate-200 pb-3"><span class="text-slate-500 font-medium">DP / Dibayar</span><span class="font-bold text-emerald-600">${formatRp(o.dp)}</span></div>
+                                <div class="flex justify-between text-sm border-b border-slate-200 pb-3"><span class="text-slate-500 font-medium">DP / Dibayar</span><span class="font-bold text-emerald-600">${formatRp(getOrderTotalPaid(o))}</span></div>
                                 <div class="flex justify-between text-lg pt-1"><span class="font-black text-slate-900">SISA TAGIHAN</span><span class="font-black ${sisa>0?'text-rose-600':'text-emerald-600'}">${sisa>0 ? formatRp(sisa) : 'Rp0 (LUNAS)'}</span></div>
                             </div>
                         </div>
