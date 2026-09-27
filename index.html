@@ -920,9 +920,9 @@
 
     <!-- MODAL PAYMENT / UPDATE TAGIHAN (CS) -->
     <div id="modalPayment" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
-            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-money-bill-wave mr-2"></i> Update Pembayaran</h3>
+        <div class="bg-white w-full max-w-sm max-h-[92vh] rounded-2xl shadow-2xl overflow-y-auto">
+            <div class="bg-emerald-600 text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-money-bill-wave mr-2"></i> Pembayaran DP / Cicilan</h3>
                 <button onclick="closeModal('modalPayment')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form onsubmit="handleSavePayment(event)" class="p-5 text-sm space-y-4">
@@ -2683,7 +2683,7 @@
                 // Payment button for CS & Owner
                 let paymentBtn = '';
                 if(appData.role === 'cs' || appData.role === 'owner') {
-                    paymentBtn = `<button onclick="openPaymentModal('${o.id}')" title="Update Pembayaran" class="p-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200"><i class="fa-solid fa-money-bill"></i></button>`;
+                    paymentBtn = `<button onclick="openPaymentModal('${o.id}')" title="Catat DP / Cicilan / Pelunasan" class="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 font-bold text-[10px] whitespace-nowrap"><i class="fa-solid fa-money-bill-wave"></i><span>Pembayaran</span></button>`;
                 }
                 
                 // Delete button for Owner only
