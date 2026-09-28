@@ -457,19 +457,21 @@
 
                         <!-- RINCIAN UKURAN & HARGA -->
                         <div class="border-t border-slate-200 pt-6">
-                            <div class="flex items-center justify-between mb-4">
-                                <div>
-                                    <h3 class="text-sm font-bold text-slate-800 uppercase">Rincian Ukuran & Harga Per Pcs</h3>
-                                    <p class="text-xs text-slate-500">Pilih kategori Anak-anak / Dewasa, jenis lengan, ukuran, qty, dan harga jual per pcs.</p>
-                                </div>
-                                <button type="button" onclick="addSizeRow()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition flex items-center space-x-1">
-                                    <i class="fa-solid fa-plus"></i>
-                                    <span>Tambahkan Ukuran</span>
-                                </button>
+                            <div class="mb-4">
+                                <h3 class="text-sm font-bold text-slate-800 uppercase">Rincian Ukuran & Harga Per Pcs</h3>
+                                <p class="text-xs text-slate-500">Pilih kategori Anak-anak / Dewasa, jenis lengan, ukuran, qty, dan harga jual per pcs.</p>
                             </div>
 
                             <div class="space-y-3" id="sizes-container">
                                 <!-- Size Rows injected dynamically -->
+                            </div>
+
+                            <!-- Tombol ditempatkan di bawah semua item agar mudah menambah ukuran saat daftar sudah panjang -->
+                            <div class="mt-4">
+                                <button type="button" onclick="addSizeRow()" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold px-4 py-3 rounded-xl transition flex items-center justify-center space-x-2 shadow-sm">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>Tambahkan Ukuran / Item</span>
+                                </button>
                             </div>
                         </div>
 
