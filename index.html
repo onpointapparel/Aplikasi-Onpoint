@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Onpoint Apparel - All-in-One ERP & Financial Control System</title>
+    <!--
+      FREE BONUS DATA CONTRACT:
+      order_items.bonus (boolean) is the source of truth for Free Bonus Pembelian.
+      Invoice, SPK, and order summary must derive their bonus/paid quantities from sizes.
+    -->
     
     <!-- Tailwind CSS & FontAwesome & Chart.js -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1476,7 +1481,10 @@
                 sleeve: normalizeSleeveValue(x.sleeve),
                 size: x.size || '',
                 qty: Number(x.qty || 0),
-                price: Number(x.price || 0)
+                price: Number(x.price || 0),
+                // Free Bonus harus berasal langsung dari item order di Supabase.
+                // Jangan mengandalkan harga 0 karena status bonus adalah atribut item.
+                bonus: x.bonus === true || x.bonus === 'true' || x.is_bonus === true || x.is_bonus === 'true'
             }));
             return {
                 ...o,
@@ -1639,7 +1647,22 @@
                 if (delErr) throw sbError(delErr, 'Gagal memperbarui item order.');
                 const src = payload.order?.sizes || [];
                 if (src.length) {
-                    const rows = src.map((x,i) => ({ item_id: `${orderId}-ITEM-${i+1}`, order_id:orderId, category:x.category||'Dewasa', size:x.size||'', sleeve:x.sleeve||'', qty:Number(x.qty||0), price:Number(x.price||0), subtotal:Number(x.qty||0)*Number(x.price||0) }));
+                    const rows = src.map((x,i) => {
+                        const isBonus = x.bonus === true || x.bonus === 'true';
+                        const qty = Number(x.qty || 0);
+                        const price = isBonus ? 0 : Number(x.price || 0);
+                        return {
+                            item_id: `${orderId}-ITEM-${i+1}`,
+                            order_id: orderId,
+                            category: x.category || 'Dewasa',
+                            size: x.size || '',
+                            sleeve: x.sleeve || '',
+                            qty,
+                            price,
+                            subtotal: qty * price,
+                            bonus: isBonus
+                        };
+                    });
                     const { error: itemErr } = await supabaseClient.from('order_items').insert(rows);
                     if (itemErr) throw sbError(itemErr, 'Gagal menyimpan item order.');
                 }
@@ -1813,7 +1836,17 @@
                 const result = await cloudRequest('bootstrap');
                 const d = result.data || {};
 
-                appData.orders = Array.isArray(d.orders) ? d.orders.map(o => ({ ...o, sizes: Array.isArray(o.sizes) ? o.sizes.map(s => ({ category: s.category || 'Dewasa', sleeve: normalizeSleeveValue(s.sleeve), size: s.size || '', qty: Number(s.qty || 0), price: Number(s.price || 0), bonus: s.bonus === true || s.bonus === 'true' })) : [] })) : [];
+                appData.orders = Array.isArray(d.orders) ? d.orders.map(o => ({
+                    ...o,
+                    sizes: Array.isArray(o.sizes) ? o.sizes.map(s => ({
+                        category: s.category || 'Dewasa',
+                        sleeve: normalizeSleeveValue(s.sleeve),
+                        size: s.size || '',
+                        qty: Number(s.qty || 0),
+                        price: Number(s.price || 0),
+                        bonus: s.bonus === true || s.bonus === 'true' || s.is_bonus === true || s.is_bonus === 'true'
+                    })) : []
+                })) : [];
                 appData.expenses = Array.isArray(d.expenses) ? d.expenses.map(x => ({
                     id: x.id || x.expense_id,
                     date: x.date || '',
@@ -2531,6 +2564,13 @@
             return ['Pendek', '3/4', 'Panjang'].includes(value) ? value : 'Pendek';
         }
 
+        // Satu sumber kebenaran untuk status Free Bonus.
+        // Mendukung data lama/baru: bonus atau is_bonus.
+        function isBonusItem(item) {
+            return item?.bonus === true || item?.bonus === 'true' ||
+                   item?.is_bonus === true || item?.is_bonus === 'true';
+        }
+
         function addSizeRow(size = 'L', qty = 12, price = 60000, category = 'Dewasa', sleeve = 'Pendek', bonus = false) {
             const container = document.getElementById('sizes-container');
             if (!container) return;
@@ -2724,6 +2764,7 @@
                 designMockupCloud: cloudUrl || (appData.orders.find(o=>o.id===existingId)?.designMockupCloud || ''),
                 sizes: sizes,
                 hppFabric: costFabric, hppPrint: costPrint, hppSew: costSew, hppPack: costPack,
+                // Semua angka ringkasan dihitung dari sizes yang sama dengan item order.
                 totalQty: totalQty, paidQty: paidQty, bonusQty: bonusQty, totalPrice: totalPrice, totalHpp: totalHpp,
                 createdAt: isNew ? new Date().toISOString().split('T')[0] : appData.orders.find(o=>o.id===existingId).createdAt
             };
@@ -4674,8 +4715,8 @@
                 let sisa = o.totalPrice - getOrderTotalPaid(o);
                 let statusLunas = sisa <= 0 ? '<div class="absolute top-10 right-10 border-4 border-emerald-500 text-emerald-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 opacity-80 uppercase tracking-widest">LUNAS</div>' : '';
 
-                const paidSizes = (o.sizes || []).filter(s => !s.bonus);
-                const bonusSizes = (o.sizes || []).filter(s => s.bonus);
+                const paidSizes = (o.sizes || []).filter(s => !isBonusItem(s));
+                const bonusSizes = (o.sizes || []).filter(s => isBonusItem(s));
                 let sizeRows = '';
                 paidSizes.forEach(s => {
                     sizeRows += `
@@ -4800,8 +4841,8 @@
                 };
 
                 const sizes = Array.isArray(o.sizes) ? o.sizes : [];
-                const paidSizes = sizes.filter(s => !(s.bonus === true || s.bonus === 'true'));
-                const bonusSizes = sizes.filter(s => s.bonus === true || s.bonus === 'true');
+                const paidSizes = sizes.filter(s => !isBonusItem(s));
+                const bonusSizes = sizes.filter(s => isBonusItem(s));
                 const sumQty = arr => arr.reduce((sum, s) => sum + Number(s.qty || 0), 0);
                 const spkPaidQty = Number(o.paidQty ?? sumQty(paidSizes));
                 const spkBonusQty = Number(o.bonusQty ?? sumQty(bonusSizes));
