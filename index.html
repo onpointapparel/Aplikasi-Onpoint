@@ -1520,7 +1520,13 @@
 
         function getOrderTotalPaid(o) {
             const tx = Array.isArray(o?.payments) ? o.payments : [];
-            if (tx.length) return tx.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+            // DP awal yang sudah tersimpan sebagai transaksi pembayaran dihitung dari payments.
+            // Fallback ke field dp hanya untuk data lama yang belum memiliki transaksi DP.
+            if (tx.length) {
+                const transactionTotal = tx.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+                const hasInitialDp = tx.some(p => String(p.paymentType || p.payment_type || '').toLowerCase().includes('dp'));
+                return hasInitialDp ? transactionTotal : transactionTotal + Number(o?.dp || 0);
+            }
             return Number(o?.dp || 0);
         }
 
@@ -5067,6 +5073,9 @@
                 designMockupLocal: upload ? (upload.thumbnailUrl || upload.url || '') : (oldOrder?.designMockupLocal || ''),
                 designMockupCloud: upload ? (upload.url || upload.downloadUrl || '') : (manualCloudUrl || oldOrder?.designMockupCloud || ''),
                 sizes: sizes,
+                // Pertahankan riwayat pembayaran lama saat order diedit. DP awal akan
+                // disinkronkan sebagai transaksi pembayaran tersendiri setelah order tersimpan.
+                payments: Array.isArray(oldOrder?.payments) ? oldOrder.payments.slice() : [],
                 hppFabric: costFabric, hppPrint: costPrint, hppSew: costSew, hppPack: costPack,
                 totalQty: totalQty, paidQty: paidQty, bonusQty: bonusQty, totalPrice: totalPrice, totalHpp: totalHpp,
                 createdAt: isNew ? new Date().toISOString().split('T')[0] : oldOrder?.createdAt
@@ -5080,6 +5089,29 @@
 
             if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan order...';
             await saveOrderToCloud(orderObj);
+
+            // DP yang diinput di Form Order otomatis menjadi transaksi pembayaran pertama.
+            // ID dibuat deterministik agar saat order diedit tidak membuat DP ganda.
+            const initialDp = Number(orderObj.dp || 0);
+            if (initialDp > 0) {
+                const dpPayment = {
+                    id: orderObj.id + '-DP-AWAL',
+                    orderId: orderObj.id,
+                    date: orderObj.createdAt || new Date().toISOString().split('T')[0],
+                    amount: initialDp,
+                    method: 'Transfer BCA',
+                    note: 'DP awal dari Form Order',
+                    payerName: orderObj.customer,
+                    paymentType: 'DP Awal',
+                    createdBy: appData.currentUserName || ''
+                };
+                await savePaymentToCloud(dpPayment);
+                const existingPayments = Array.isArray(orderObj.payments) ? orderObj.payments.filter(p => p.id !== dpPayment.id) : [];
+                orderObj.payments = existingPayments.concat([dpPayment]);
+                const localIdx = appData.orders.findIndex(function(x) { return x.id === orderObj.id; });
+                if (localIdx >= 0) appData.orders[localIdx].payments = orderObj.payments;
+            }
+
             await saveCustomerToCloud({
                 id: 'CUS-' + String(orderObj.phone || orderObj.customer).replace(/\D/g, '').slice(-12),
                 name: orderObj.customer,
