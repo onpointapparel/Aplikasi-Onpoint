@@ -505,7 +505,9 @@
                             <div class="space-y-1">
                                 <span class="text-xs text-slate-400 block uppercase font-medium">Ringkasan Pembayaran:</span>
                                 <div class="flex flex-wrap items-center gap-3">
-                                    <span class="text-xs text-slate-300">Total Qty: <strong id="summary-total-qty" class="text-white font-bold">0 Pcs</strong></span>
+                                    <span class="text-xs text-slate-300">Total Produksi: <strong id="summary-total-qty" class="text-white font-bold">0 Pcs</strong></span>
+                                    <span class="text-xs text-slate-300">Berbayar: <strong id="summary-paid-qty" class="text-emerald-300 font-bold">0 Pcs</strong></span>
+                                    <span class="text-xs text-slate-300">Bonus: <strong id="summary-bonus-qty" class="text-amber-300 font-bold">0 Pcs</strong></span>
                                     <span class="text-xs text-slate-300">|</span>
                                     <span class="text-lg font-extrabold text-sky-400">Harga Jual: <span id="summary-total-price">Rp 0</span></span>
                                 </div>
@@ -1803,7 +1805,7 @@
                 const result = await cloudRequest('bootstrap');
                 const d = result.data || {};
 
-                appData.orders = Array.isArray(d.orders) ? d.orders.map(o => ({ ...o, sizes: Array.isArray(o.sizes) ? o.sizes.map(s => ({ category: s.category || 'Dewasa', sleeve: normalizeSleeveValue(s.sleeve), size: s.size || '', qty: Number(s.qty || 0), price: Number(s.price || 0) })) : [] })) : [];
+                appData.orders = Array.isArray(d.orders) ? d.orders.map(o => ({ ...o, sizes: Array.isArray(o.sizes) ? o.sizes.map(s => ({ category: s.category || 'Dewasa', sleeve: normalizeSleeveValue(s.sleeve), size: s.size || '', qty: Number(s.qty || 0), price: Number(s.price || 0), bonus: s.bonus === true || s.bonus === 'true' })) : [] })) : [];
                 appData.expenses = Array.isArray(d.expenses) ? d.expenses.map(x => ({
                     id: x.id || x.expense_id,
                     date: x.date || '',
@@ -2521,56 +2523,50 @@
             return ['Pendek', '3/4', 'Panjang'].includes(value) ? value : 'Pendek';
         }
 
-        function addSizeRow(size = 'L', qty = 12, price = 60000, category = 'Dewasa', sleeve = 'Pendek') {
+        function addSizeRow(size = 'L', qty = 12, price = 60000, category = 'Dewasa', sleeve = 'Pendek', bonus = false) {
             const container = document.getElementById('sizes-container');
+            if (!container) return;
             sleeve = normalizeSleeveValue(sleeve);
+            bonus = bonus === true || bonus === 'true';
             const rowId = 'size-row-' + Date.now() + Math.random().toString(36).substr(2, 4);
             const div = document.createElement('div');
             div.id = rowId;
-            div.className = "bg-slate-50 p-3 rounded-xl border border-slate-200";
+            div.className = bonus ? "bg-amber-50 p-3 rounded-xl border-2 border-amber-300 shadow-sm" : "bg-slate-50 p-3 rounded-xl border border-slate-200";
             const adultSizes = ['S','M','L','XL','XXL','3XL','4XL'];
             const childSizes = ['XS','S','M','L','XL'];
             const sizes = category === 'Anak-anak' ? childSizes : adultSizes;
             if (!sizes.includes(size)) size = sizes.includes('L') ? 'L' : sizes[0];
             div.innerHTML = `
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Kategori</label>
-                        <select class="size-category w-full border rounded-lg p-2 text-xs font-bold" onchange="updateSizeOptions(this); calculateOrderTotal()">
-                            <option value="Anak-anak" ${category==='Anak-anak'?'selected':''}>Anak-anak</option>
-                            <option value="Dewasa" ${category==='Dewasa'?'selected':''}>Dewasa</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Lengan</label>
-                        <select class="sleeve-val w-full border rounded-lg p-2 text-xs font-bold" onchange="calculateOrderTotal()">
-                            <option value="Pendek" ${sleeve==='Pendek'?'selected':''}>Lengan Pendek</option>
-                            <option value="3/4" ${sleeve==='3/4'?'selected':''}>Lengan 3/4</option>
-                            <option value="Panjang" ${sleeve==='Panjang'?'selected':''}>Lengan Panjang</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Ukuran</label>
-                        <select class="size-val w-full border rounded-lg p-2 text-xs font-bold" onchange="calculateOrderTotal()">
-                            ${sizes.map(s => `<option value="${s}" ${size===s?'selected':''}>${s}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Qty (Pcs)</label>
-                        <input type="number" min="1" value="${qty}" class="qty-val w-full border rounded-lg p-2 text-xs font-bold" oninput="calculateOrderTotal()">
-                    </div>
-                    <div class="flex gap-2">
-                        <div class="flex-1">
-                            <label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Harga / Pcs</label>
-                            <input type="number" min="0" value="${price}" class="price-val w-full border rounded-lg p-2 text-xs font-bold" oninput="calculateOrderTotal()">
-                        </div>
-                        <button type="button" onclick="removeSizeRow('${rowId}')" class="text-rose-500 hover:text-rose-700 p-2 h-9 mt-5" title="Hapus ukuran">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <span class="row-type-badge inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${bonus ? 'bg-amber-200 text-amber-900' : 'bg-slate-200 text-slate-700'}"><i class="fa-solid ${bonus ? 'fa-gift' : 'fa-tag'}"></i> ${bonus ? 'FREE BONUS PEMBELIAN' : 'ITEM BERBAYAR'}</span>
+                    <label class="flex items-center gap-2 text-[10px] font-bold text-slate-700 cursor-pointer select-none"><input type="checkbox" class="bonus-val w-4 h-4 accent-amber-500" ${bonus ? 'checked' : ''} onchange="toggleBonusRow(this)"> Jadikan Free Bonus</label>
                 </div>
-            `;
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                    <div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Kategori</label><select class="size-category w-full border rounded-lg p-2 text-xs font-bold" onchange="updateSizeOptions(this); calculateOrderTotal()"><option value="Anak-anak" ${category==='Anak-anak'?'selected':''}>Anak-anak</option><option value="Dewasa" ${category==='Dewasa'?'selected':''}>Dewasa</option></select></div>
+                    <div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Lengan</label><select class="sleeve-val w-full border rounded-lg p-2 text-xs font-bold" onchange="calculateOrderTotal()"><option value="Pendek" ${sleeve==='Pendek'?'selected':''}>Lengan Pendek</option><option value="3/4" ${sleeve==='3/4'?'selected':''}>Lengan 3/4</option><option value="Panjang" ${sleeve==='Panjang'?'selected':''}>Lengan Panjang</option></select></div>
+                    <div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Ukuran</label><select class="size-val w-full border rounded-lg p-2 text-xs font-bold" onchange="calculateOrderTotal()">${sizes.map(s => `<option value="${s}" ${size===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                    <div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Qty (Pcs)</label><input type="number" min="1" value="${qty}" class="qty-val w-full border rounded-lg p-2 text-xs font-bold" oninput="calculateOrderTotal()"></div>
+                    <div><label class="text-[10px] uppercase font-bold text-slate-500 block mb-1">Harga / Pcs</label><input type="number" min="0" value="${bonus ? 0 : price}" class="price-val w-full border rounded-lg p-2 text-xs font-bold ${bonus ? 'bg-amber-100 text-amber-700 cursor-not-allowed' : ''}" ${bonus ? 'readonly disabled' : ''} oninput="calculateOrderTotal()"></div>
+                    <div class="flex justify-end"><button type="button" onclick="removeSizeRow('${rowId}')" class="text-rose-500 hover:text-rose-700 p-2 h-9" title="Hapus ukuran"><i class="fa-solid fa-trash"></i></button></div>
+                </div>`;
             container.appendChild(div);
+            calculateOrderTotal();
+        }
+
+        function toggleBonusRow(checkbox) {
+            const row = checkbox?.closest('#sizes-container > div');
+            if (!row) return;
+            const priceInput = row.querySelector('.price-val');
+            const badge = row.querySelector('.row-type-badge');
+            const isBonus = checkbox.checked;
+            row.className = isBonus ? "bg-amber-50 p-3 rounded-xl border-2 border-amber-300 shadow-sm" : "bg-slate-50 p-3 rounded-xl border border-slate-200";
+            if (isBonus) {
+                if (priceInput) { priceInput.value = 0; priceInput.disabled = true; priceInput.readOnly = true; priceInput.classList.add('bg-amber-100','text-amber-700','cursor-not-allowed'); }
+                if (badge) { badge.innerHTML = '<i class="fa-solid fa-gift"></i> FREE BONUS PEMBELIAN'; badge.className = 'row-type-badge inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-200 text-amber-900'; }
+            } else {
+                if (priceInput) { priceInput.disabled = false; priceInput.readOnly = false; if (!Number(priceInput.value)) priceInput.value = 60000; priceInput.classList.remove('bg-amber-100','text-amber-700','cursor-not-allowed'); }
+                if (badge) { badge.innerHTML = '<i class="fa-solid fa-tag"></i> ITEM BERBAYAR'; badge.className = 'row-type-badge inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-slate-200 text-slate-700'; }
+            }
             calculateOrderTotal();
         }
 
@@ -2580,36 +2576,37 @@
             const sizeSelect = row.querySelector('.size-val');
             const category = categorySelect.value;
             const currentSize = sizeSelect.value;
-            const sizes = category === 'Anak-anak'
-                ? ['XS','S','M','L','XL']
-                : ['S','M','L','XL','XXL','3XL','4XL'];
+            const sizes = category === 'Anak-anak' ? ['XS','S','M','L','XL'] : ['S','M','L','XL','XXL','3XL','4XL'];
             sizeSelect.innerHTML = sizes.map(s => `<option value="${s}">${s}</option>`).join('');
             sizeSelect.value = sizes.includes(currentSize) ? currentSize : (category === 'Anak-anak' ? 'M' : 'L');
         }
 
-        function removeSizeRow(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
-            calculateOrderTotal();
+        function removeSizeRow(id) { const el = document.getElementById(id); if (el) el.remove(); calculateOrderTotal(); }
+
+        function getOrderSizeSummaryFromRows() {
+            let totalQty = 0, paidQty = 0, bonusQty = 0, totalPrice = 0;
+            document.querySelectorAll('#sizes-container > div').forEach(row => {
+                const qty = Math.max(0, Number(row.querySelector('.qty-val')?.value || 0));
+                const price = Math.max(0, Number(row.querySelector('.price-val')?.value || 0));
+                const bonus = !!row.querySelector('.bonus-val')?.checked;
+                totalQty += qty;
+                if (bonus) bonusQty += qty; else { paidQty += qty; totalPrice += qty * price; }
+            });
+            return { totalQty, paidQty, bonusQty, totalPrice };
         }
 
         function calculateOrderTotal() {
-            let totalQty = 0, totalPrice = 0;
-            document.querySelectorAll('#sizes-container > div').forEach(row => {
-                const qty = Number(row.querySelector('.qty-val').value || 0);
-                const price = Number(row.querySelector('.price-val').value || 0);
-                totalQty += qty; totalPrice += (qty * price);
-            });
-
+            const summary = getOrderSizeSummaryFromRows();
             const costFabric = Number(document.getElementById('cost-fabric-pcs')?.value || 0);
             const costPrint = Number(document.getElementById('cost-print-pcs')?.value || 0);
             const costSew = Number(document.getElementById('cost-sew-pcs')?.value || 0);
             const costPack = Number(document.getElementById('cost-pack-pcs')?.value || 0);
-            const totalHpp = totalQty * (costFabric + costPrint + costSew + costPack);
-
-            document.getElementById('summary-total-qty').innerText = `${totalQty} Pcs`;
+            const totalHpp = summary.totalQty * (costFabric + costPrint + costSew + costPack);
+            document.getElementById('summary-total-qty').innerText = `${summary.totalQty} Pcs`;
+            if(document.getElementById('summary-paid-qty')) document.getElementById('summary-paid-qty').innerText = `${summary.paidQty} Pcs`;
+            if(document.getElementById('summary-bonus-qty')) document.getElementById('summary-bonus-qty').innerText = `${summary.bonusQty} Pcs`;
             if(document.getElementById('summary-total-hpp')) document.getElementById('summary-total-hpp').innerText = formatRp(totalHpp);
-            document.getElementById('summary-total-price').innerText = formatRp(totalPrice);
+            document.getElementById('summary-total-price').innerText = formatRp(summary.totalPrice);
         }
 
         function resetOrderForm() {
@@ -2719,7 +2716,7 @@
                 designMockupCloud: cloudUrl || (appData.orders.find(o=>o.id===existingId)?.designMockupCloud || ''),
                 sizes: sizes,
                 hppFabric: costFabric, hppPrint: costPrint, hppSew: costSew, hppPack: costPack,
-                totalQty: totalQty, totalPrice: totalPrice, totalHpp: totalHpp,
+                totalQty: totalQty, paidQty: paidQty, bonusQty: bonusQty, totalPrice: totalPrice, totalHpp: totalHpp,
                 createdAt: isNew ? new Date().toISOString().split('T')[0] : appData.orders.find(o=>o.id===existingId).createdAt
             };
 
@@ -2977,7 +2974,7 @@
                 box.innerHTML = '';
                 const rows = Array.isArray(order.sizes) ? order.sizes : [];
                 if (rows.length) {
-                    rows.forEach(s => addSizeRow(s.size || 'L', Number(s.qty || 0), Number(s.price || 0), s.category || 'Dewasa', normalizeSleeveValue(s.sleeve || 'Pendek')));
+                    rows.forEach(s => addSizeRow(s.size || 'L', Number(s.qty || 0), Number(s.price || 0), s.category || 'Dewasa', normalizeSleeveValue(s.sleeve || 'Pendek'), s.bonus === true || s.bonus === 'true'));
                 } else addSizeRow('L', 1, 60000, 'Dewasa', 'Pendek');
             }
 
@@ -3536,7 +3533,15 @@
             });
             if (!orders.length) return showToast(`Belum ada order selesai Jahit pada periode ${p.period_name}. Status yang dibaca: QC & Packing / Selesai-Lunas.`, 'info');
 
-            const qty = orders.reduce((sum, o) => sum + Number(o.totalQty || 0), 0);
+            const qty = orders.reduce((sum, o) => {
+                const fallback = (Array.isArray(o.sizes) ? o.sizes : []).reduce((n, item) => n + Number(item.qty || 0), 0);
+                return sum + Number(o.totalQty || fallback || 0);
+            }, 0);
+            const bonusQty = orders.reduce((sum, o) => {
+                const fromField = Number(o.bonusQty || 0);
+                const fallback = (Array.isArray(o.sizes) ? o.sizes : []).reduce((n, item) => n + ((item.bonus === true || item.bonus === 'true') ? Number(item.qty || 0) : 0), 0);
+                return sum + (fromField || fallback);
+            }, 0);
             if (qty <= 0) return showToast('Order yang ditemukan belum memiliki jumlah pcs.', 'error');
 
             const rate = Number(emp.rate || 4000);
@@ -3556,7 +3561,7 @@
                 paid_amount: paid,
                 remaining_amount: remaining,
                 status: payrollStatus(gross, paid),
-                notes: `Sinkron otomatis ${orders.length} order selesai Jahit: ${orders.map(o => o.id).join(', ')}`,
+                notes: `Sinkron otomatis ${orders.length} order selesai Jahit: ${orders.map(o => o.id).join(', ')} • Total ${qty} pcs termasuk ${bonusQty} pcs Free Bonus Pembelian.`,
                 created_at: existing?.created_at || new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
@@ -4661,17 +4666,25 @@
                 let sisa = o.totalPrice - getOrderTotalPaid(o);
                 let statusLunas = sisa <= 0 ? '<div class="absolute top-10 right-10 border-4 border-emerald-500 text-emerald-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 opacity-80 uppercase tracking-widest">LUNAS</div>' : '';
 
+                const paidSizes = (o.sizes || []).filter(s => !s.bonus);
+                const bonusSizes = (o.sizes || []).filter(s => s.bonus);
                 let sizeRows = '';
-                o.sizes.forEach(s => {
+                paidSizes.forEach(s => {
                     sizeRows += `
                         <tr class="border-b border-slate-200 text-sm">
                             <td class="py-3 px-2">Kaos Sablon Custom (${s.category || "Dewasa"} - ${s.sleeve || "Pendek"} - ${s.size})</td>
                             <td class="py-3 px-2 text-center">${s.qty}</td>
                             <td class="py-3 px-2 text-right">${formatRp(s.price)}</td>
                             <td class="py-3 px-2 text-right font-bold">${formatRp(s.qty * s.price)}</td>
-                        </tr>
-                    `;
+                        </tr>`;
                 });
+                let bonusRows = '';
+                bonusSizes.forEach(s => {
+                    bonusRows += `<tr class="border-b border-amber-200 bg-amber-50 text-sm"><td class="py-3 px-2 font-bold text-amber-900"><span class="inline-flex items-center gap-1 bg-amber-200 text-amber-900 px-2 py-1 rounded-full text-[10px] uppercase mr-2"><i class="fa-solid fa-gift"></i> Free Bonus Pembelian</span>${s.category || 'Dewasa'} - ${s.sleeve || 'Pendek'} - ${s.size}</td><td class="py-3 px-2 text-center font-black text-amber-900">${s.qty}</td><td class="py-3 px-2 text-right font-bold text-amber-700">Rp 0</td><td class="py-3 px-2 text-right font-black text-amber-900">GRATIS</td></tr>`;
+                });
+                const bonusQty = Number(o.bonusQty ?? bonusSizes.reduce((sum, s) => sum + Number(s.qty || 0), 0));
+                const productionQty = Number(o.totalQty || 0);
+                const paidQty = Number(o.paidQty ?? Math.max(0, productionQty - bonusQty));
 
                 area.innerHTML = `
                     <div data-invoice-id="${o.id}" class="relative bg-white font-sans max-w-4xl mx-auto border border-slate-100 shadow-sm p-10 rounded-2xl print:shadow-none print:border-none print:p-0">
@@ -4723,9 +4736,12 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${sizeRows}
+                                ${sizeRows || `<tr><td colspan="4" class="py-4 text-center text-slate-400">Tidak ada item berbayar.</td></tr>`}
                             </tbody>
                         </table>
+
+                        ${bonusRows ? `<div class="mb-8 border-2 border-amber-300 rounded-xl overflow-hidden"><div class="bg-amber-100 px-4 py-2 text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-2"><i class="fa-solid fa-gift"></i> Free Bonus Pembelian</div><table class="w-full text-left border-collapse"><thead><tr class="bg-amber-50 text-amber-900 text-xs uppercase"><th class="py-2 px-2">Item Bonus</th><th class="py-2 px-2 text-center">Qty</th><th class="py-2 px-2 text-right">Harga</th><th class="py-2 px-2 text-right">Keterangan</th></tr></thead><tbody>${bonusRows}</tbody></table></div>` : ''}
+                        <div class="flex justify-end mb-6"><div class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-2"><div class="flex justify-between"><span class="text-slate-500">Total Kaos Produksi</span><b class="text-slate-800">${productionQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Kaos Berbayar</span><b class="text-emerald-700">${paidQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Free Bonus Pembelian</span><b class="text-amber-700">${bonusQty} Pcs</b></div></div></div>
 
                         <!-- Summary Pembayaran -->
                         <div class="flex justify-end mb-10">
@@ -4760,12 +4776,16 @@
                 title.innerText = 'Cetak SPK Produksi';
                 
                 let sizeBoxes = '';
-                o.sizes.forEach(s => {
+                (o.sizes || []).forEach(s => {
                     const category = s.category || 'Dewasa';
                     const sleeve = normalizeSleeveValue(s.sleeve);
                     const sleeveLabel = sleeve === '3/4' ? 'Lengan 3/4' : (sleeve === 'Panjang' ? 'Lengan Panjang' : 'Lengan Pendek');
-                    sizeBoxes += `<div class="border border-slate-300 p-2 text-center rounded"><div class="font-black text-sm">${category}</div><div class="text-[10px] font-bold text-brand-700">${sleeveLabel}</div><div class="font-black text-xl">${s.size}</div><div class="text-xs text-slate-500 font-bold">${s.qty} Pcs</div></div>`;
+                    const isBonus = s.bonus === true || s.bonus === 'true';
+                    sizeBoxes += `<div class="${isBonus ? 'border-2 border-amber-400 bg-amber-50' : 'border border-slate-300 bg-white'} p-2 text-center rounded min-w-[110px]">${isBonus ? '<div class="text-[9px] font-black text-amber-900 bg-amber-200 rounded px-1 py-0.5 mb-1">FREE BONUS</div>' : '<div class="text-[9px] font-bold text-slate-400 mb-1">BERBAYAR</div>'}<div class="font-black text-sm">${category}</div><div class="text-[10px] font-bold ${isBonus ? 'text-amber-700' : 'text-brand-700'}">${sleeveLabel}</div><div class="font-black text-xl">${s.size}</div><div class="text-xs ${isBonus ? 'text-amber-800' : 'text-slate-500'} font-bold">${s.qty} Pcs</div></div>`;
                 });
+                const spkBonusQty = Number(o.bonusQty ?? (o.sizes || []).filter(s => s.bonus).reduce((sum, s) => sum + Number(s.qty || 0), 0));
+                const spkTotalQty = Number(o.totalQty || (o.sizes || []).reduce((sum, s) => sum + Number(s.qty || 0), 0));
+                const spkPaidQty = Number(o.paidQty ?? Math.max(0, spkTotalQty - spkBonusQty));
 
                 area.innerHTML = `
                     <div class="bg-white font-sans max-w-4xl mx-auto p-8 print:p-0">
@@ -4785,13 +4805,13 @@
                             <div class="space-y-2 text-sm bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <div class="flex"><div class="w-32 font-bold text-slate-500">Bahan Kain</div><div class="font-black text-slate-800">${o.kain}</div></div>
                                 <div class="flex"><div class="w-32 font-bold text-slate-500">Jenis Sablon</div><div class="font-black text-slate-800">${o.sablon}</div></div>
-                                <div class="flex"><div class="w-32 font-bold text-slate-500">Total Qty</div><div class="font-black text-brand-600 text-lg">${o.totalQty} Pcs</div></div>
+                                <div class="flex"><div class="w-32 font-bold text-slate-500">Total Qty Produksi</div><div class="font-black text-brand-600 text-lg">${spkTotalQty} Pcs</div></div><div class="flex"><div class="w-32 font-bold text-slate-500">Berbayar / Bonus</div><div class="font-black text-slate-800">${spkPaidQty} / <span class="text-amber-700">${spkBonusQty} Pcs</span></div></div>
                             </div>
                         </div>
 
                         <div class="mb-8">
                             <h3 class="font-black text-slate-800 mb-3 bg-slate-200 px-3 py-1 inline-block rounded">Rincian Ukuran Potong</h3>
-                            <div class="flex flex-wrap gap-4">${sizeBoxes}</div>
+                            <div class="flex flex-wrap gap-4">${sizeBoxes}</div><div class="mt-4 flex flex-wrap gap-3 text-xs font-bold"><div class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-2">TOTAL PRODUKSI: ${spkTotalQty} PCS</div><div class="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-3 py-2">BERBAYAR: ${spkPaidQty} PCS</div><div class="bg-amber-100 border border-amber-300 text-amber-900 rounded-lg px-3 py-2"><i class="fa-solid fa-gift mr-1"></i> FREE BONUS: ${spkBonusQty} PCS</div></div>
                         </div>
 
                         <div class="mb-8">
@@ -4952,11 +4972,14 @@
                     sleeve: normalizeSleeveValue(row.querySelector('.sleeve-val')?.value),
                     size: row.querySelector('.size-val').value,
                     qty: Number(row.querySelector('.qty-val').value || 0),
-                    price: Number(row.querySelector('.price-val').value || 0)
+                    price: row.querySelector('.bonus-val')?.checked ? 0 : Number(row.querySelector('.price-val').value || 0),
+                    bonus: !!row.querySelector('.bonus-val')?.checked
                 });
             });
             const totalQty = sizes.reduce(function(sum, item) { return sum + item.qty; }, 0);
-            const totalPrice = sizes.reduce(function(sum, item) { return sum + (item.qty * item.price); }, 0);
+            const bonusQty = sizes.reduce(function(sum, item) { return sum + (item.bonus ? item.qty : 0); }, 0);
+            const paidQty = totalQty - bonusQty;
+            const totalPrice = sizes.reduce(function(sum, item) { return sum + (item.bonus ? 0 : (item.qty * item.price)); }, 0);
             const costFabric = Number(document.getElementById('cost-fabric-pcs')?.value || 28000);
             const costPrint = Number(document.getElementById('cost-print-pcs')?.value || 8000);
             const costSew = Number(document.getElementById('cost-sew-pcs')?.value || 7000);
@@ -4988,7 +5011,7 @@
                 designMockupCloud: upload ? (upload.url || upload.downloadUrl || '') : (manualCloudUrl || oldOrder?.designMockupCloud || ''),
                 sizes: sizes,
                 hppFabric: costFabric, hppPrint: costPrint, hppSew: costSew, hppPack: costPack,
-                totalQty: totalQty, totalPrice: totalPrice, totalHpp: totalHpp,
+                totalQty: totalQty, paidQty: paidQty, bonusQty: bonusQty, totalPrice: totalPrice, totalHpp: totalHpp,
                 createdAt: isNew ? new Date().toISOString().split('T')[0] : oldOrder?.createdAt
             };
 
