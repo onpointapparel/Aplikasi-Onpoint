@@ -670,7 +670,66 @@
                 </div>
             </section>
 
-            <!-- 6. VIEW STOK BAHAN & SUPPLIER PO -->
+            <!-- 6. VIEW TOTAL PRODUKSI KAOS -->
+            <section id="view-total-produksi" class="space-y-6 hidden">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">Total Produksi Kaos</h2>
+                        <p class="text-slate-500 text-sm">Tracking jumlah kaos yang sudah masuk workflow produksi dan jumlah defect berdasarkan bulan.</p>
+                    </div>
+                    <div class="text-[10px] text-slate-400 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                        Produksi dihitung dari order yang sudah masuk tahap Antrian sampai Selesai.
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <div class="text-[10px] font-black uppercase text-slate-400">Total Produksi</div>
+                        <div id="production-total-all" class="text-2xl font-black text-brand-700 mt-2">0 Pcs</div>
+                        <div class="text-[10px] text-slate-400 mt-1">Semua periode</div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <div class="text-[10px] font-black uppercase text-slate-400">Produksi Bulan Ini</div>
+                        <div id="production-total-month" class="text-2xl font-black text-emerald-600 mt-2">0 Pcs</div>
+                        <div class="text-[10px] text-slate-400 mt-1">Berdasarkan bulan order masuk produksi</div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <div class="text-[10px] font-black uppercase text-slate-400">Total Defect</div>
+                        <div id="production-defect-all" class="text-2xl font-black text-rose-600 mt-2">0 Pcs</div>
+                        <div class="text-[10px] text-slate-400 mt-1">Semua laporan defect</div>
+                    </div>
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                        <div class="text-[10px] font-black uppercase text-slate-400">Defect Bulan Ini</div>
+                        <div id="production-defect-month" class="text-2xl font-black text-amber-600 mt-2">0 Pcs</div>
+                        <div class="text-[10px] text-slate-400 mt-1">Berdasarkan tanggal laporan defect</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-brand-600"></i>
+                            Rekap Produksi & Defect Bulanan
+                        </h3>
+                        <p class="text-[10px] text-slate-400 mt-1">Produksi = total pcs order yang sudah masuk workflow produksi. Defect = total pcs defect yang dilaporkan pada bulan tersebut.</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 uppercase text-[9px] font-black">
+                                <tr>
+                                    <th class="p-3">Bulan</th>
+                                    <th class="p-3">Total Produksi</th>
+                                    <th class="p-3">Total Defect</th>
+                                    <th class="p-3">Rasio Defect</th>
+                                </tr>
+                            </thead>
+                            <tbody id="production-summary-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. VIEW STOK BAHAN & SUPPLIER PO -->
             <section id="view-stok" class="space-y-6 hidden">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -1633,7 +1692,7 @@
                     customers,
                     expenses: expenses.map(x => ({ id:x.expense_id, date:x.date, category:x.category, desc:x.description, amount:Number(x.amount||0), createdBy:x.created_by||'', status:x.status||'Approved' })),
                     stock: stock.map(x => ({ id:x.stock_id, type:x.type, name:x.name, qty:Number(x.qty||0), unit:x.unit||'', minQty:Number(x.min_qty||0), supplier:x.supplier||'', note:x.note||'' })),
-                    defects: defects.map(x => ({ id:x.defect_id, orderId:x.order_id||'', division:x.type||'', defectType:x.type||'', qty:Number(x.qty||0), action:x.description||'', status:x.status||'Open' }))
+                    defects: defects.map(x => ({ id:x.defect_id, orderId:x.order_id||'', date:x.date||x.created_at||'', division:x.type||'', defectType:x.type||'', qty:Number(x.qty||0), action:x.description||'', status:x.status||'Open' }))
                 }, config: {} };
             }
 
@@ -1865,6 +1924,7 @@
                 appData.defects = Array.isArray(d.defects) ? d.defects.map(x => ({
                     id: x.id || x.defect_id,
                     orderId: x.orderId || x.order_id || '',
+                    date: x.date || x.created_at || '',
                     division: x.division || x.type || '',
                     defectType: x.defectType || x.type || '',
                     qty: Number(x.qty || 0),
@@ -2214,7 +2274,8 @@
                     { id: 'gaji-karyawan', label: 'Gaji Karyawan', icon: 'fa-users-gear' },
                     { id: 'stok', label: 'Stok & PO', icon: 'fa-boxes-stacked' },
                     { id: 'crm', label: 'Database CRM', icon: 'fa-users' },
-                    { id: 'produksi-kanban', label: 'Workflow QC', icon: 'fa-diagram-project' }
+                    { id: 'produksi-kanban', label: 'Workflow QC', icon: 'fa-diagram-project' },
+                    { id: 'total-produksi', label: 'Total Produksi Kaos', icon: 'fa-chart-column' }
                 ];
                 // Show/hide owner specific elements
                 document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
@@ -2231,6 +2292,7 @@
                 tabs = [
                     { id: 'daftar-pengerjaan', label: 'Task Divisi Produksi', icon: 'fa-list-ol' },
                     { id: 'produksi-kanban', label: 'Board Workflow & QC', icon: 'fa-diagram-project' },
+                    { id: 'total-produksi', label: 'Total Produksi Kaos', icon: 'fa-chart-column' },
                     { id: 'daftar-pesanan', label: 'Lihat SPK Order', icon: 'fa-list-check' },
                     { id: 'stok', label: 'Update Stok', icon: 'fa-boxes-stacked' }
                 ];
@@ -2279,6 +2341,7 @@
             }
             if (tabId === 'crm') renderCRM();
             if (tabId === 'design-center') renderDesignCenter();
+            if (tabId === 'total-produksi') renderProductionSummary();
             if (tabId === 'gaji-karyawan') { loadPayrollData().catch(err => showToast('Gagal memuat payroll: ' + err.message, 'error')); }
         }
 
@@ -2317,6 +2380,100 @@
             openModal('modalConfirm');
         }
 
+        function renderProductionSummary() {
+            const totalEl = document.getElementById('production-total-all');
+            const monthEl = document.getElementById('production-total-month');
+            const defectEl = document.getElementById('production-defect-all');
+            const defectMonthEl = document.getElementById('production-defect-month');
+            const body = document.getElementById('production-summary-body');
+            if (!body) return;
+
+            const productionStatuses = new Set([
+                'Antrian', 'Potong Kain', 'Sablon / Bordir',
+                'Proses Jahit', 'QC & Packing', 'Selesai / Lunas'
+            ]);
+            const productionOrders = (appData.orders || []).filter(o =>
+                productionStatuses.has(String(o.status || '').trim())
+            );
+
+            const getDateValue = (value) => {
+                if (!value) return null;
+                const raw = String(value).trim();
+                const date = new Date(raw.length <= 10 ? raw + 'T12:00:00' : raw);
+                return Number.isNaN(date.getTime()) ? null : date;
+            };
+            const monthKey = (value) => {
+                const d = getDateValue(value);
+                return d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : '';
+            };
+            const monthLabel = (key) => {
+                if (!key) return 'Tanggal tidak tersedia';
+                const [year, month] = key.split('-').map(Number);
+                return new Date(year, month - 1, 1).toLocaleDateString('id-ID', {
+                    month: 'long', year: 'numeric'
+                });
+            };
+
+            const now = new Date();
+            const currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const qtyOf = (o) => {
+                const fallback = (Array.isArray(o.sizes) ? o.sizes : [])
+                    .reduce((n, x) => n + Number(x.qty || 0), 0);
+                return Number(o.totalQty || fallback || 0);
+            };
+
+            const totalProduction = productionOrders.reduce((sum, o) => sum + qtyOf(o), 0);
+            const monthProduction = productionOrders
+                .filter(o => monthKey(o.createdAt || o.created_at) === currentKey)
+                .reduce((sum, o) => sum + qtyOf(o), 0);
+
+            const defects = appData.defects || [];
+            const totalDefect = defects.reduce((sum, d) => sum + Number(d.qty || 0), 0);
+            const monthDefect = defects
+                .filter(d => monthKey(d.date || d.created_at) === currentKey)
+                .reduce((sum, d) => sum + Number(d.qty || 0), 0);
+
+            if (totalEl) totalEl.innerText = `${totalProduction.toLocaleString('id-ID')} Pcs`;
+            if (monthEl) monthEl.innerText = `${monthProduction.toLocaleString('id-ID')} Pcs`;
+            if (defectEl) defectEl.innerText = `${totalDefect.toLocaleString('id-ID')} Pcs`;
+            if (defectMonthEl) defectMonthEl.innerText = `${monthDefect.toLocaleString('id-ID')} Pcs`;
+
+            const grouped = {};
+            productionOrders.forEach(o => {
+                const key = monthKey(o.createdAt || o.created_at);
+                if (!key) return;
+                if (!grouped[key]) grouped[key] = { production: 0, defect: 0 };
+                grouped[key].production += qtyOf(o);
+            });
+            defects.forEach(d => {
+                const key = monthKey(d.date || d.created_at);
+                if (!key) return;
+                if (!grouped[key]) grouped[key] = { production: 0, defect: 0 };
+                grouped[key].defect += Number(d.qty || 0);
+            });
+
+            const keys = Object.keys(grouped).sort().reverse();
+            if (!keys.length) {
+                body.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-slate-400">Belum ada data produksi atau defect.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = keys.map(key => {
+                const row = grouped[key];
+                const production = Number(row.production || 0);
+                const defect = Number(row.defect || 0);
+                const defectRate = production > 0 ? ((defect / production) * 100).toFixed(1) : '0.0';
+                return `
+                    <tr class="hover:bg-slate-50 border-b border-slate-50">
+                        <td class="p-3 font-bold text-slate-800">${monthLabel(key)}</td>
+                        <td class="p-3 font-black text-brand-700">${production.toLocaleString('id-ID')} Pcs</td>
+                        <td class="p-3 font-bold text-rose-600">${defect.toLocaleString('id-ID')} Pcs</td>
+                        <td class="p-3 font-semibold text-slate-600">${defectRate}%</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         function renderAll() {
             if(appData.role === 'owner') renderDashboard();
             if(appData.role === 'cs') {
@@ -2328,6 +2485,7 @@
                 renderDaftarPengerjaan();
                 renderKanban();
                 renderStock();
+                renderProductionSummary();
             }
             if(appData.role === 'owner') { renderExpenses(); if (document.getElementById('view-gaji-karyawan') && !document.getElementById('view-gaji-karyawan').classList.contains('hidden')) renderPayroll(); }
             if(appData.role === 'cs' || appData.role === 'owner') renderCRM();
@@ -3133,45 +3291,36 @@
 
             const oldDesignStatus = o.designStatus || 'Belum desain';
             const oldOrderStatus = o.status;
-
-            // Update object lokal terlebih dahulu agar UI langsung merespons.
             o.designStatus = newStatus;
 
-            // Sinkronkan status approval dengan perubahan yang dilakukan CS.
-            // Customer tetap dapat melakukan approval melalui approval.html, tetapi
-            // CS sekarang juga dapat mengelola status desain dari Design Center.
-            if (newStatus === 'Approved') {
-                o.approvalStatus = 'Approved';
-                o.approvedAt = o.approvedAt || new Date().toISOString();
-                o.approvedByCustomer = o.approvedByCustomer || 'CS';
-            } else if (newStatus === 'Menunggu approval') {
-                o.approvalStatus = 'Pending';
-                o.approvedAt = '';
-                o.approvedByCustomer = '';
-            } else if (newStatus === 'Revisi') {
-                o.approvalStatus = 'Revision Requested';
-                o.approvedAt = '';
-                o.approvedByCustomer = '';
-            } else {
-                // Status kerja desain belum berarti customer menyetujui desain.
-                if (o.approvalStatus === 'Approved') o.approvalStatus = 'Pending';
-                o.approvedAt = '';
-                o.approvedByCustomer = '';
-            }
-
-            // Approved menjadi production gate. Bila status dikembalikan ke status
-            // desain non-approved, order yang masih berada di gate awal dikembalikan
-            // ke Desain Pending. Status produksi yang sudah berjalan tidak disentuh.
             if (newStatus === 'Approved' && oldOrderStatus === 'Desain Pending') {
                 o.status = 'Antrian';
-            } else if (newStatus !== 'Approved' && (oldOrderStatus === 'Desain Pending' || oldOrderStatus === 'Antrian')) {
+            } else if (
+                newStatus !== 'Approved' &&
+                (oldOrderStatus === 'Desain Pending' || oldOrderStatus === 'Antrian')
+            ) {
                 o.status = 'Desain Pending';
             }
 
+            // Hapus snapshot saveOrder lama untuk order ini agar tidak ada
+            // data lama yang terkirim belakangan dan menimpa perubahan terbaru.
+            if (Array.isArray(fastSyncQueue)) {
+                fastSyncQueue = fastSyncQueue.filter(job =>
+                    !(job?.action === 'saveOrder' &&
+                      String(job?.payload?.order?.id || job?.payload?.order?.order_id || '') === String(id))
+                );
+                persistFastSyncQueue();
+            }
+
             try {
-                // Wajib simpan ke cloud. saveOrderToCloud memakai queue sinkronisasi
-                // yang sudah digunakan oleh update order lainnya.
-                await saveOrderToCloud(o);
+                if (!isCloudConfigured() || !cloudSessionToken) {
+                    throw new Error('Cloud belum terhubung atau sesi login tidak valid.');
+                }
+
+                // Perubahan status desain wajib menunggu Supabase benar-benar
+                // selesai menyimpan, bukan sekadar masuk queue.
+                await cloudRequest('saveOrder', { order: o });
+
                 saveLocalState();
                 renderAll();
 
@@ -3181,8 +3330,6 @@
                     showToast(`Status Desain ${id} diperbarui menjadi ${newStatus}.`, 'success');
                 }
             } catch (err) {
-                // Rollback lokal bila penyimpanan cloud gagal agar UI tidak
-                // menampilkan status yang berbeda dari database.
                 o.designStatus = oldDesignStatus;
                 o.status = oldOrderStatus;
                 renderAll();
@@ -3948,6 +4095,7 @@
             e.preventDefault();
             const newDefect = {
                 orderId: document.getElementById('def-order').value,
+                date: new Date().toISOString().slice(0, 10),
                 division: document.getElementById('def-division').value,
                 defectType: document.getElementById('def-type').value,
                 qty: Number(document.getElementById('def-qty').value || 1),
