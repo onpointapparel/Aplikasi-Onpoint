@@ -3117,19 +3117,77 @@
             renderDesignCenter();
         }
 
-        function updateDesignStatus(id, newStatus) {
-            const o = appData.orders.find(item => item.id === id);
-            if (o) {
-                o.designStatus = newStatus;
-                
-                // Automate order status logic based on design approval
-                if(newStatus === 'Approved' && o.status === 'Desain Pending') {
-                    o.status = 'Antrian'; // Auto move to Production Gate
-                    showToast(`Desain Approved! Order ${id} masuk antrian produksi.`, 'success');
-                } else {
-                    showToast(`Status Desain ${id} diperbarui.`, 'success');
-                }
+        async function updateDesignStatus(id, newStatus) {
+            const o = appData.orders.find(item => String(item.id) === String(id));
+            if (!o) {
+                showToast(`Order ${id} tidak ditemukan.`, 'error');
+                return;
+            }
+
+            const allowedStatuses = ['Belum desain', 'Sedang dikerjakan', 'Menunggu approval', 'Revisi', 'Approved'];
+            if (!allowedStatuses.includes(newStatus)) {
+                showToast('Status desain tidak valid.', 'error');
+                renderDesignCenter();
+                return;
+            }
+
+            const oldDesignStatus = o.designStatus || 'Belum desain';
+            const oldOrderStatus = o.status;
+
+            // Update object lokal terlebih dahulu agar UI langsung merespons.
+            o.designStatus = newStatus;
+
+            // Sinkronkan status approval dengan perubahan yang dilakukan CS.
+            // Customer tetap dapat melakukan approval melalui approval.html, tetapi
+            // CS sekarang juga dapat mengelola status desain dari Design Center.
+            if (newStatus === 'Approved') {
+                o.approvalStatus = 'Approved';
+                o.approvedAt = o.approvedAt || new Date().toISOString();
+                o.approvedByCustomer = o.approvedByCustomer || 'CS';
+            } else if (newStatus === 'Menunggu approval') {
+                o.approvalStatus = 'Pending';
+                o.approvedAt = '';
+                o.approvedByCustomer = '';
+            } else if (newStatus === 'Revisi') {
+                o.approvalStatus = 'Revision Requested';
+                o.approvedAt = '';
+                o.approvedByCustomer = '';
+            } else {
+                // Status kerja desain belum berarti customer menyetujui desain.
+                if (o.approvalStatus === 'Approved') o.approvalStatus = 'Pending';
+                o.approvedAt = '';
+                o.approvedByCustomer = '';
+            }
+
+            // Approved menjadi production gate. Bila status dikembalikan ke status
+            // desain non-approved, order yang masih berada di gate awal dikembalikan
+            // ke Desain Pending. Status produksi yang sudah berjalan tidak disentuh.
+            if (newStatus === 'Approved' && oldOrderStatus === 'Desain Pending') {
+                o.status = 'Antrian';
+            } else if (newStatus !== 'Approved' && (oldOrderStatus === 'Desain Pending' || oldOrderStatus === 'Antrian')) {
+                o.status = 'Desain Pending';
+            }
+
+            try {
+                // Wajib simpan ke cloud. saveOrderToCloud memakai queue sinkronisasi
+                // yang sudah digunakan oleh update order lainnya.
+                await saveOrderToCloud(o);
                 saveLocalState();
+                renderAll();
+
+                if (newStatus === 'Approved' && oldOrderStatus === 'Desain Pending') {
+                    showToast(`Desain ${id} Approved. Order masuk antrian produksi.`, 'success');
+                } else if (oldDesignStatus !== newStatus) {
+                    showToast(`Status Desain ${id} diperbarui menjadi ${newStatus}.`, 'success');
+                }
+            } catch (err) {
+                // Rollback lokal bila penyimpanan cloud gagal agar UI tidak
+                // menampilkan status yang berbeda dari database.
+                o.designStatus = oldDesignStatus;
+                o.status = oldOrderStatus;
+                renderAll();
+                showToast(`Gagal menyimpan status desain ${id}: ${err?.message || err}`, 'error');
+                console.error('ONPOINT design status update error:', err);
             }
         }
 
