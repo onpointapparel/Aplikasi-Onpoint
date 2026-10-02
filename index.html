@@ -1696,6 +1696,39 @@
                 }, config: {} };
             }
 
+            if (action === 'updateDesignStatus') {
+                const orderId = payload.orderId;
+                const designStatus = String(payload.designStatus || '');
+                const orderStatus = String(payload.orderStatus || '');
+                if (!orderId) throw new Error('Order ID wajib diisi.');
+                if (!designStatus) throw new Error('Status desain wajib diisi.');
+
+                const patch = {
+                    design_status: designStatus,
+                    updated_at: new Date().toISOString()
+                };
+                if (orderStatus) patch.status = orderStatus;
+
+                // Hanya ubah kolom yang memang terkait status desain.
+                // Tidak menyentuh item, pembayaran, mockup, harga, atau data order lain.
+                const { data, error } = await supabaseClient
+                    .from('orders')
+                    .update(patch)
+                    .eq('order_id', orderId)
+                    .select('order_id,design_status,status,updated_at')
+                    .maybeSingle();
+
+                if (error) throw sbError(error, 'Gagal menyimpan status desain ke Supabase.');
+                if (!data) throw new Error('Order tidak ditemukan atau perubahan ditolak oleh database/RLS.');
+                if (String(data.design_status || '') !== designStatus) {
+                    throw new Error(`Verifikasi gagal: database mengembalikan status \"${data.design_status || ''}\".`);
+                }
+                if (orderStatus && String(data.status || '') !== orderStatus) {
+                    throw new Error(`Verifikasi status order gagal: database mengembalikan \"${data.status || ''}\".`);
+                }
+                return { ok:true, data };
+            }
+
             if (action === 'saveOrder') {
                 const row = orderToRow(payload.order || {});
                 if (!row.order_id) throw new Error('Order ID wajib diisi.');
@@ -3290,49 +3323,62 @@
             }
 
             const oldDesignStatus = o.designStatus || 'Belum desain';
-            const oldOrderStatus = o.status;
-            o.designStatus = newStatus;
+            const oldOrderStatus = o.status || '';
+            let nextOrderStatus = oldOrderStatus;
 
+            // Hanya status order pada tahap awal yang boleh digerakkan oleh status desain.
+            // Status produksi yang sudah berjalan tidak disentuh.
             if (newStatus === 'Approved' && oldOrderStatus === 'Desain Pending') {
-                o.status = 'Antrian';
-            } else if (
-                newStatus !== 'Approved' &&
-                (oldOrderStatus === 'Desain Pending' || oldOrderStatus === 'Antrian')
-            ) {
-                o.status = 'Desain Pending';
+                nextOrderStatus = 'Antrian';
+            } else if (newStatus !== 'Approved' && (oldOrderStatus === 'Desain Pending' || oldOrderStatus === 'Antrian')) {
+                nextOrderStatus = 'Desain Pending';
             }
 
-            // Hapus snapshot saveOrder lama untuk order ini agar tidak ada
-            // data lama yang terkirim belakangan dan menimpa perubahan terbaru.
+            if (!isCloudConfigured() || !cloudSessionToken) {
+                showToast('Cloud belum terhubung atau sesi login tidak valid.', 'error');
+                renderDesignCenter();
+                return;
+            }
+
+            // Jangan biarkan snapshot saveOrder lama yang masih menunggu mengembalikan
+            // status desain ke nilai sebelumnya setelah perubahan ini berhasil.
             if (Array.isArray(fastSyncQueue)) {
-                fastSyncQueue = fastSyncQueue.filter(job =>
-                    !(job?.action === 'saveOrder' &&
-                      String(job?.payload?.order?.id || job?.payload?.order?.order_id || '') === String(id))
-                );
+                fastSyncQueue = fastSyncQueue.filter(job => {
+                    const jobOrderId = job?.payload?.order?.id || job?.payload?.order?.order_id;
+                    return !(job?.action === 'saveOrder' && String(jobOrderId) === String(id));
+                });
                 persistFastSyncQueue();
             }
 
             try {
-                if (!isCloudConfigured() || !cloudSessionToken) {
-                    throw new Error('Cloud belum terhubung atau sesi login tidak valid.');
+                // Operasi khusus ini langsung UPDATE kolom orders di Supabase dan
+                // tidak melewati queue/saveOrder. Setelah UPDATE, cloudRequest juga
+                // membaca kembali row untuk memastikan database benar-benar menerima nilai.
+                const result = await cloudRequest('updateDesignStatus', {
+                    orderId: o.id,
+                    designStatus: newStatus,
+                    orderStatus: nextOrderStatus
+                });
+
+                if (!result?.ok || !result?.data) {
+                    throw new Error('Supabase tidak mengonfirmasi perubahan status desain.');
                 }
 
-                // Perubahan status desain wajib menunggu Supabase benar-benar
-                // selesai menyimpan, bukan sekadar masuk queue.
-                await cloudRequest('saveOrder', { order: o });
-
+                // Baru setelah database terverifikasi, ubah state lokal.
+                o.designStatus = newStatus;
+                if (nextOrderStatus) o.status = nextOrderStatus;
                 saveLocalState();
                 renderAll();
 
                 if (newStatus === 'Approved' && oldOrderStatus === 'Desain Pending') {
                     showToast(`Desain ${id} Approved. Order masuk antrian produksi.`, 'success');
                 } else if (oldDesignStatus !== newStatus) {
-                    showToast(`Status Desain ${id} diperbarui menjadi ${newStatus}.`, 'success');
+                    showToast(`Status Desain ${id} tersimpan sebagai ${newStatus}.`, 'success');
                 }
             } catch (err) {
-                o.designStatus = oldDesignStatus;
-                o.status = oldOrderStatus;
-                renderAll();
+                // State lokal tidak diubah sebelum database sukses, sehingga tidak
+                // diperlukan rollback data order yang berisiko menimpa nilai cloud.
+                renderDesignCenter();
                 showToast(`Gagal menyimpan status desain ${id}: ${err?.message || err}`, 'error');
                 console.error('ONPOINT design status update error:', err);
             }
