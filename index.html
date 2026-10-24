@@ -323,6 +323,23 @@
                     </div>
                 </div>
 
+                <!-- RINGKASAN ARUS UANG TERCATAT -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-200 flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-transfer"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Saldo Tercatat (Pembayaran - Pengeluaran)</p><h3 id="dash-recorded-balance" class="text-xl font-bold text-emerald-700">Rp 0</h3><p class="text-[10px] text-slate-400 mt-1">Perkiraan uang tersisa berdasarkan transaksi yang dicatat.</p></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-rose-200 flex items-center space-x-4">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-receipt"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pengeluaran Tercatat</p><h3 id="dash-total-expenses" class="text-xl font-bold text-rose-700">Rp 0</h3><p class="text-[10px] text-slate-400 mt-1">Pengeluaran berstatus Approved.</p></div>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-brand-600"></i> Analisis Keuangan Otomatis</h3>
+                    <p class="text-xs text-slate-500 mb-3">Analisis berdasarkan data transaksi aplikasi; tidak memerlukan koneksi AI eksternal sehingga tidak menambah beban aplikasi.</p>
+                    <div id="dash-financial-analysis" class="text-sm text-slate-700 space-y-2"><p>Analisis akan muncul setelah data keuangan dimuat.</p></div>
+                </div>
+
                 <!-- CHARTS ROW -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
@@ -429,11 +446,10 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Jenis Sablon / Aplikasi <span class="text-red-500">*</span></label>
                                 <select id="ord-sablon" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none" onchange="calculateOrderTotal()">
-                                    <option value="Plastisol Digital / DTF">Plastisol Digital / DTF</option>
-                                    <option value="Plastisol Manual">Plastisol Manual</option>
-                                    <option value="Rubber Softbed">Rubber Softbed</option>
-                                    <option value="Bordir Komputer">Bordir Komputer</option>
-                                    <option value="Discharge / Cabut Warna">Discharge / Cabut Warna</option>
+                                    <option value="Sablon DTF">Sablon DTF</option>
+                                    <option value="Sablon Plastisol">Sablon Plastisol</option>
+                                    <option value="Jersey">Jersey</option>
+                                    <option value="Bordir">Bordir</option>
                                 </select>
                             </div>
 
@@ -1231,13 +1247,17 @@
                 <button onclick="closeModal('modalExpense')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <form onsubmit="handleSaveExpense(event)" class="p-5 space-y-4 text-xs">
+                <input type="hidden" id="exp-id">
                 <div>
                     <label class="font-semibold text-slate-600">Kategori Biaya</label>
                     <select id="exp-category" class="w-full border p-2 rounded mt-1">
-                        <option value="Operasional">Beban Operasional (Listrik/Sewa/Wifi)</option>
-                        <option value="Bahan Baku">Pembelian Bahan / Cat / Kain</option>
-                        <option value="Perbaikan Mesin">Servis / Maintenance Alat</option>
-                        <option value="Lain-Lain">Pengeluaran Lain-Lain</option>
+                        <option value="Biaya Produksi Pembuatan Kaos">Biaya Produksi Pembuatan Kaos</option>
+                        <option value="Biaya Produksi Sablon DTF">Biaya Produksi Sablon DTF</option>
+                        <option value="Biaya Produksi Sablon Manual">Biaya Produksi Sablon Manual</option>
+                        <option value="Biaya Produksi Print Press Jersey">Biaya Produksi Print Press Jersey</option>
+                        <option value="Konsumsi">Konsumsi</option>
+                        <option value="Transportasi">Transportasi</option>
+                        <option value="Pengeluaran Lainnya">Pengeluaran Lainnya</option>
                     </select>
                 </div>
                 <div>
@@ -1250,7 +1270,7 @@
                 </div>
                 <div class="pt-3 flex justify-end gap-2 border-t">
                     <button type="button" onclick="closeModal('modalExpense')" class="px-3 py-2 bg-slate-200 rounded font-semibold">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-rose-600 text-white rounded font-semibold">Simpan Biaya</button>
+                    <button id="exp-submit-btn" type="submit" class="px-4 py-2 bg-rose-600 text-white rounded font-semibold">Simpan Biaya</button>
                 </div>
             </form>
         </div>
@@ -1767,6 +1787,13 @@
                 if (itemErr) throw sbError(itemErr, 'Gagal menghapus item order.');
                 const { error } = await supabaseClient.from('orders').delete().eq('order_id', id);
                 if (error) throw sbError(error, 'Gagal menghapus order.');
+                return { ok:true };
+            }
+
+            if (action === 'deleteExpense') {
+                const id = payload.id;
+                const { error } = await supabaseClient.from('expenses').delete().eq('expense_id', id);
+                if (error) throw sbError(error, 'Gagal menghapus pengeluaran.');
                 return { ok:true };
             }
 
@@ -2691,14 +2718,33 @@
             let cashIn = appData.orders.reduce((sum, o) => sum + getOrderTotalPaid(o), 0);
             let totalHpp = appData.orders.reduce((sum, o) => sum + Number(o.totalHpp || 0), 0);
             let totalExp = appData.expenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-            let receivables = totalOmset - cashIn;
+            // Hitung piutang per order agar kelebihan bayar pada satu order tidak menghapus piutang order lain.
+            let receivables = appData.orders.reduce((sum, o) => sum + Math.max(0, Number(o.totalPrice || 0) - getOrderTotalPaid(o)), 0);
             let netProfit = (totalOmset - totalHpp) - totalExp;
+            let recordedBalance = cashIn - totalExp;
 
             if(document.getElementById('dash-total-omset')) {
                 document.getElementById('dash-total-omset').innerText = formatRp(totalOmset);
                 document.getElementById('dash-cash-in').innerText = formatRp(cashIn);
                 document.getElementById('dash-receivables').innerText = formatRp(receivables);
                 document.getElementById('dash-net-profit').innerText = formatRp(netProfit);
+                const balanceEl = document.getElementById('dash-recorded-balance');
+                const expensesEl = document.getElementById('dash-total-expenses');
+                if (balanceEl) { balanceEl.innerText = formatRp(recordedBalance); balanceEl.className = 'text-xl font-bold ' + (recordedBalance < 0 ? 'text-rose-700' : 'text-emerald-700'); }
+                if (expensesEl) expensesEl.innerText = formatRp(totalExp);
+                const analysisEl = document.getElementById('dash-financial-analysis');
+                if (analysisEl) {
+                    const ratio = cashIn > 0 ? Math.round((totalExp / cashIn) * 100) : null;
+                    const unpaidOrders = appData.orders.filter(o => Math.max(0, Number(o.totalPrice || 0) - getOrderTotalPaid(o)) > 0).length;
+                    const messages = [];
+                    messages.push(`<p><b>Pembayaran diterima:</b> ${formatRp(cashIn)}. <b>Pengeluaran:</b> ${formatRp(totalExp)}.</p>`);
+                    if (recordedBalance < 0) messages.push(`<p class="text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Pengeluaran tercatat lebih besar daripada pembayaran yang diterima sebesar ${formatRp(Math.abs(recordedBalance))}. Periksa transaksi yang belum dicatat atau dibayar dari sumber lain.</p>`);
+                    else if (cashIn === 0 && totalExp === 0) messages.push('<p>Belum ada transaksi pembayaran atau pengeluaran yang cukup untuk dianalisis.</p>');
+                    else messages.push(`<p class="text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>Saldo tercatat saat ini ${formatRp(recordedBalance)} setelah pengeluaran yang disetujui dikurangi.</p>`);
+                    if (ratio !== null) messages.push(`<p>Porsi pengeluaran terhadap pembayaran masuk: <b>${ratio}%</b>.</p>`);
+                    messages.push(`<p>Ada <b>${unpaidOrders}</b> order yang masih memiliki sisa tagihan. Saldo ini hanya berdasarkan transaksi yang sudah dimasukkan ke aplikasi, bukan verifikasi otomatis saldo fisik/rekening.</p>`);
+                    analysisEl.innerHTML = messages.join('');
+                }
 
                 document.getElementById('pl-total-contract').innerText = formatRp(totalOmset);
                 document.getElementById('pl-dp-received').innerText = formatRp(cashIn);
@@ -4288,27 +4334,65 @@
             }
         }
 
-        function openExpenseModal() { openModal('modalExpense'); }
-        
+        function openExpenseModal(expenseId = null) {
+            const form = document.querySelector('#modalExpense form');
+            if (form) form.reset();
+            document.getElementById('exp-id').value = '';
+            document.getElementById('exp-submit-btn').innerText = 'Simpan Biaya';
+            const exp = expenseId ? appData.expenses.find(x => String(x.id) === String(expenseId)) : null;
+            if (exp) {
+                document.getElementById('exp-id').value = exp.id;
+                if (exp.category && !Array.from(document.getElementById('exp-category').options).some(o => o.value === exp.category)) document.getElementById('exp-category').add(new Option(exp.category, exp.category));
+                document.getElementById('exp-category').value = exp.category || 'Pengeluaran Lainnya';
+                document.getElementById('exp-desc').value = exp.desc || '';
+                document.getElementById('exp-amount').value = Number(exp.amount || 0);
+                document.getElementById('exp-submit-btn').innerText = 'Simpan Perubahan';
+            }
+            openModal('modalExpense');
+        }
+
         async function handleSaveExpense(e) {
             e.preventDefault();
+            const existingId = document.getElementById('exp-id').value;
+            const existing = existingId ? appData.expenses.find(x => String(x.id) === String(existingId)) : null;
             const exp = {
-                id: 'EXP-' + (appData.expenses.length + 1),
-                date: new Date().toISOString().split('T')[0],
+                ...(existing || {}),
+                id: existingId || ('EXP-' + Date.now()),
+                date: existing?.date || new Date().toISOString().split('T')[0],
                 category: document.getElementById('exp-category').value,
-                desc: document.getElementById('exp-desc').value,
+                desc: document.getElementById('exp-desc').value.trim(),
                 amount: Number(document.getElementById('exp-amount').value),
-                createdBy: appData.role.toUpperCase(),
-                status: 'Approved' // auto approve for simplicity
+                createdBy: existing?.createdBy || appData.role.toUpperCase(),
+                status: existing?.status || 'Approved'
             };
             try {
                 await saveExpenseToCloud(exp);
-                appData.expenses.unshift(exp);
+                if (existing) appData.expenses = appData.expenses.map(x => String(x.id) === String(existingId) ? exp : x);
+                else appData.expenses.unshift(exp);
                 saveLocalState();
+                renderExpenses();
+                renderDashboard();
                 closeModal('modalExpense');
-                showToast('Pengeluaran berhasil dicatat!', 'success');
+                showToast(existing ? 'Pengeluaran berhasil diperbarui!' : 'Pengeluaran berhasil dicatat!', 'success');
             } catch (err) {
                 showToast('Pengeluaran gagal disimpan ke cloud: ' + err.message, 'error');
+            }
+        }
+
+        async function deleteExpense(expenseId) {
+            if (String(appData.role).toLowerCase() !== 'owner') { showToast('Hanya Owner yang dapat menghapus pengeluaran.', 'error'); return; }
+            const exp = appData.expenses.find(x => String(x.id) === String(expenseId));
+            if (!exp) return;
+            if (!confirm(`Hapus pengeluaran ${exp.desc || exp.category} sebesar ${formatRp(exp.amount)}? Tindakan ini akan menghapus catatan dari aplikasi.`)) return;
+            try {
+                await queueCloudSync('deleteExpense', { id: expenseId });
+                appData.expenses = appData.expenses.filter(x => String(x.id) !== String(expenseId));
+                saveLocalState();
+                renderExpenses();
+                renderDashboard();
+                showToast('Pengeluaran dihapus dari tampilan dan antrean sinkronisasi.', 'success');
+            } catch (err) {
+                showToast('Pengeluaran gagal dihapus: ' + err.message, 'error');
             }
         }
 
@@ -4317,15 +4401,20 @@
             if (!body) return;
             body.innerHTML = '';
             appData.expenses.forEach(e => {
+                const actions = String(appData.role).toLowerCase() === 'owner' ? `
+                    <div class="flex justify-center gap-1 mt-2">
+                        <button onclick="openExpenseModal('${String(e.id).replace(/'/g, '')}')" class="px-2 py-1 rounded bg-blue-100 text-blue-700 font-bold" title="Edit"><i class="fa-solid fa-pen"></i> Edit</button>
+                        <button onclick="deleteExpense('${String(e.id).replace(/'/g, '')}')" class="px-2 py-1 rounded bg-rose-100 text-rose-700 font-bold" title="Hapus"><i class="fa-solid fa-trash"></i> Hapus</button>
+                    </div>` : '';
                 body.innerHTML += `
                     <tr class="hover:bg-slate-50 border-b border-slate-50">
-                        <td class="p-3">${e.date}</td>
-                        <td class="p-3 font-semibold text-slate-700">${e.category}</td>
-                        <td class="p-3">${e.desc}</td>
-                        <td class="p-3"><span class="bg-slate-200 text-[10px] font-bold px-2 py-0.5 rounded">${e.createdBy}</span></td>
+                        <td class="p-3">${e.date || '-'}</td>
+                        <td class="p-3 font-semibold text-slate-700">${e.category || '-'}</td>
+                        <td class="p-3">${e.desc || '-'}</td>
+                        <td class="p-3"><span class="bg-slate-200 text-[10px] font-bold px-2 py-0.5 rounded">${e.createdBy || '-'}</span></td>
                         <td class="p-3 font-bold text-rose-600">${formatRp(e.amount)}</td>
                         <td class="p-3 text-center">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${e.status==='Approved'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}">${e.status}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold ${e.status==='Approved'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}">${e.status || 'Approved'}</span>${actions}
                         </td>
                     </tr>
                 `;
@@ -4964,7 +5053,14 @@
                 title.innerText = 'Cetak Invoice / Tagihan';
                 if (exportActions) exportActions.classList.remove('hidden');
                 
-                let sisa = o.totalPrice - getOrderTotalPaid(o);
+                let sisa = Math.max(0, Number(o.totalPrice || 0) - getOrderTotalPaid(o));
+                const deadlineRaw = String(o.deadline || '').trim();
+                let deadlineDisplay = '-';
+                if (deadlineRaw) {
+                    const dateMatch = deadlineRaw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+                    const deadlineDate = dateMatch ? new Date(Number(dateMatch[1]), Number(dateMatch[2]) - 1, Number(dateMatch[3])) : new Date(deadlineRaw);
+                    if (!Number.isNaN(deadlineDate.getTime())) deadlineDisplay = deadlineDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                }
                 let statusLunas = sisa <= 0 ? '<div class="absolute top-10 right-10 border-4 border-emerald-500 text-emerald-500 font-black text-4xl px-4 py-2 rounded-xl transform rotate-12 opacity-80 uppercase tracking-widest">LUNAS</div>' : '';
 
                 const paidSizes = (o.sizes || []).filter(s => !isBonusItem(s));
@@ -4973,10 +5069,10 @@
                 paidSizes.forEach(s => {
                     sizeRows += `
                         <tr class="border-b border-slate-200 text-sm">
-                            <td class="py-3 px-2">Kaos Sablon Custom (${s.category || "Dewasa"} - ${s.sleeve || "Pendek"} - ${s.size})</td>
-                            <td class="py-3 px-2 text-center">${s.qty}</td>
-                            <td class="py-3 px-2 text-right">${formatRp(s.price)}</td>
-                            <td class="py-3 px-2 text-right font-bold">${formatRp(s.qty * s.price)}</td>
+                            <td class="py-2 px-2">Kaos Sablon Custom (${s.category || "Dewasa"} - ${s.sleeve || "Pendek"} - ${s.size})</td>
+                            <td class="py-2 px-2 text-center">${s.qty}</td>
+                            <td class="py-2 px-2 text-right">${formatRp(s.price)}</td>
+                            <td class="py-2 px-2 text-right font-bold">${formatRp(s.qty * s.price)}</td>
                         </tr>`;
                 });
                 let bonusRows = '';
@@ -4988,11 +5084,11 @@
                 const paidQty = Number(o.paidQty ?? Math.max(0, productionQty - bonusQty));
 
                 area.innerHTML = `
-                    <div data-invoice-id="${o.id}" class="relative bg-white font-sans max-w-4xl mx-auto border border-slate-100 shadow-sm p-10 rounded-2xl print:shadow-none print:border-none print:p-0">
+                    <div data-invoice-id="${o.id}" class="relative bg-white font-sans max-w-4xl mx-auto border border-slate-100 shadow-sm p-6 rounded-xl print:shadow-none print:border-none print:p-0">
                         ${statusLunas}
                         
                         <!-- Header -->
-                        <div class="flex justify-between items-start mb-10 pb-6 border-b-2 border-brand-500">
+                        <div class="flex justify-between items-start mb-5 pb-4 border-b-2 border-brand-500">
                             <div>
                                 <div class="flex items-center gap-3 mb-2">
                                     <div class="w-10 h-10 bg-brand-600 rounded-lg flex items-center justify-center text-white"><i class="fa-solid fa-shirt text-xl"></i></div>
@@ -5010,24 +5106,24 @@
                         </div>
 
                         <!-- Info Customer & Pesanan -->
-                        <div class="grid grid-cols-2 gap-8 mb-10">
+                        <div class="grid grid-cols-[0.9fr_1.1fr] gap-4 mb-5">
                             <div>
                                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tagihan Kepada:</h4>
                                 <p class="text-lg font-bold text-slate-900">${o.customer}</p>
                                 <p class="text-sm text-slate-600">WA: ${o.phone}</p>
                             </div>
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
                                 <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Detail Spesifikasi:</h4>
-                                <div class="grid grid-cols-2 gap-y-2 text-sm">
+                                <div class="grid grid-cols-[42%_58%] gap-x-2 gap-y-1 text-sm">
                                     <div class="text-slate-500">Bahan:</div><div class="font-semibold text-slate-800">${o.kain}</div>
                                     <div class="text-slate-500">Aplikasi/Sablon:</div><div class="font-semibold text-slate-800">${o.sablon}</div>
-                                    <div class="text-slate-500">Tenggat Waktu:</div><div class="font-semibold text-slate-800">${o.deadline}</div>
+                                    <div class="text-slate-500">Tenggat Waktu:</div><div class="font-semibold text-slate-800">${deadlineDisplay}</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Tabel Item -->
-                        <table class="w-full text-left mb-8 border-collapse">
+                        <table class="w-full text-left mb-4 border-collapse">
                             <thead>
                                 <tr class="bg-brand-50 text-brand-700 text-sm">
                                     <th class="py-3 px-2 font-bold uppercase tracking-wider rounded-l-lg">Deskripsi Item</th>
@@ -5041,12 +5137,12 @@
                             </tbody>
                         </table>
 
-                        ${bonusRows ? `<div class="mb-8 border-2 border-amber-300 rounded-xl overflow-hidden"><div class="bg-amber-100 px-4 py-2 text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-2"><i class="fa-solid fa-gift"></i> Free Bonus Pembelian</div><table class="w-full text-left border-collapse"><thead><tr class="bg-amber-50 text-amber-900 text-xs uppercase"><th class="py-2 px-2">Item Bonus</th><th class="py-2 px-2 text-center">Qty</th><th class="py-2 px-2 text-right">Harga</th><th class="py-2 px-2 text-right">Keterangan</th></tr></thead><tbody>${bonusRows}</tbody></table></div>` : ''}
-                        <div class="flex justify-end mb-6"><div class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm space-y-2"><div class="flex justify-between"><span class="text-slate-500">Total Kaos Produksi</span><b class="text-slate-800">${productionQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Kaos Berbayar</span><b class="text-emerald-700">${paidQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Free Bonus Pembelian</span><b class="text-amber-700">${bonusQty} Pcs</b></div></div></div>
+                        ${bonusRows ? `<div class="mb-4 border-2 border-amber-300 rounded-xl overflow-hidden"><div class="bg-amber-100 px-4 py-2 text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-2"><i class="fa-solid fa-gift"></i> Free Bonus Pembelian</div><table class="w-full text-left border-collapse"><thead><tr class="bg-amber-50 text-amber-900 text-xs uppercase"><th class="py-2 px-2">Item Bonus</th><th class="py-2 px-2 text-center">Qty</th><th class="py-2 px-2 text-right">Harga</th><th class="py-2 px-2 text-right">Keterangan</th></tr></thead><tbody>${bonusRows}</tbody></table></div>` : ''}
+                        <div class="flex justify-end mb-4"><div class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm space-y-1"><div class="flex justify-between"><span class="text-slate-500">Total Kaos Produksi</span><b class="text-slate-800">${productionQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Kaos Berbayar</span><b class="text-emerald-700">${paidQty} Pcs</b></div><div class="flex justify-between"><span class="text-slate-500">Free Bonus Pembelian</span><b class="text-amber-700">${bonusQty} Pcs</b></div></div></div>
 
                         <!-- Summary Pembayaran -->
-                        <div class="flex justify-end mb-10">
-                            <div class="w-1/2 space-y-3">
+                        <div class="flex justify-end mb-5">
+                            <div class="w-1/2 space-y-2">
                                 <div class="flex justify-between text-sm"><span class="text-slate-500 font-medium">Subtotal</span><span class="font-bold text-slate-800">${formatRp(o.totalPrice)}</span></div>
                                 <div class="flex justify-between text-sm border-b border-slate-200 pb-3"><span class="text-slate-500 font-medium">DP / Dibayar</span><span class="font-bold text-emerald-600">${formatRp(getOrderTotalPaid(o))}</span></div>
                                 <div class="flex justify-between text-lg pt-1"><span class="font-black text-slate-900">SISA TAGIHAN</span><span class="font-black ${sisa>0?'text-rose-600':'text-emerald-600'}">${sisa>0 ? formatRp(sisa) : 'Rp0 (LUNAS)'}</span></div>
@@ -5054,14 +5150,13 @@
                         </div>
 
                         <!-- Footer / Notes -->
-                        <div class="border-t-2 border-slate-100 pt-6 flex justify-between items-end">
+                        <div class="border-t-2 border-slate-100 pt-4 flex justify-between items-end">
                             <div class="w-2/3">
                                 <h4 class="text-xs font-bold text-slate-800 uppercase mb-1">Catatan Pesanan:</h4>
-                                <p class="text-xs text-slate-500 italic bg-slate-50 p-3 rounded-lg border border-slate-100 inline-block">${o.notes || 'Tidak ada catatan khusus.'}</p>
-                                <div class="mt-4 bg-slate-50 border border-slate-200 rounded-lg p-3 inline-block">
-                                    <p class="text-[10px] font-bold text-slate-700 uppercase">Rekening Pembayaran</p>
-                                    <p class="text-xs font-black text-slate-900 mt-1">Bank BCA: 3031338873</p>
-                                    
+                                <p class="text-xs text-slate-500 italic bg-slate-50 p-2 rounded-lg border border-slate-100 inline-block">${o.notes || 'Tidak ada catatan khusus.'}</p>
+                                <div style="display:block; width:260px; min-height:58px; box-sizing:border-box; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-top:8px; color:#0f172a; overflow:visible;">
+                                    <p style="display:block; margin:0; font-size:10px; line-height:15px; font-weight:700; color:#334155; text-transform:uppercase;">Rekening Pembayaran</p>
+                                    <p style="display:block; margin:4px 0 0; font-size:12px; line-height:18px; font-weight:900; color:#0f172a; white-space:nowrap;">Bank BCA: 3031338873</p>
                                 </div>
                             </div>
                             <div class="text-center w-1/3">
