@@ -461,6 +461,7 @@
                                     <option value="Cotton Combed 20s">Cotton Combed 20s</option>
                                     <option value="Pique Cotton (Polo)">Pique Cotton (Polo)</option>
                                     <option value="Fleece Cotton (Hoodie)">Fleece Cotton (Hoodie)</option>
+                                    <option value="Poliester">Poliester</option>
                                     <option value="Tanpa Kain (Bawa Sendiri)">Tanpa Kain (Bawa Sendiri)</option>
                                 </select>
                             </div>
@@ -473,6 +474,7 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase mb-2">DP Masuk (Rp)</label>
                                 <input type="number" id="ord-dp" min="0" value="0" placeholder="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none" oninput="calculateOrderTotal()">
+                                <p id="ord-dp-edit-note" class="hidden text-[10px] text-amber-700 mt-1">DP order lama dikunci saat edit. Untuk pembayaran tambahan atau koreksi, gunakan menu Pembayaran.</p>
                             </div>
                         </div>
 
@@ -1607,14 +1609,35 @@
 
         function getOrderTotalPaid(o) {
             const tx = Array.isArray(o?.payments) ? o.payments : [];
-            // DP awal yang sudah tersimpan sebagai transaksi pembayaran dihitung dari payments.
-            // Fallback ke field dp hanya untuk data lama yang belum memiliki transaksi DP.
-            if (tx.length) {
-                const transactionTotal = tx.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-                const hasInitialDp = tx.some(p => String(p.paymentType || p.payment_type || '').toLowerCase().includes('dp'));
+
+            // Jika transaksi DP awal sudah ada, jumlahkan seluruh transaksi saja.
+            // Jika belum ada transaksi DP awal, tambahkan field dp lama sebagai fallback.
+            // Ini menjaga kompatibilitas data historis tanpa menggandakan DP yang sudah tercatat.
+            if (tx.length > 0) {
+                const transactionTotal = tx.reduce((sum, p) => {
+                    const amount = Number(p?.amount || 0);
+                    return sum + (Number.isFinite(amount) ? amount : 0);
+                }, 0);
+                const hasInitialDp = tx.some(p =>
+                    String(p?.paymentType || p?.payment_type || '').toLowerCase().includes('dp')
+                );
                 return hasInitialDp ? transactionTotal : transactionTotal + Number(o?.dp || 0);
             }
-            return Number(o?.dp || 0);
+            const legacyDp = Number(o?.dp || 0);
+            return Number.isFinite(legacyDp) ? legacyDp : 0;
+        }
+
+        function formatPaymentDate(value) {
+            if (!value) return '-';
+            const raw = String(value).trim();
+            const match = raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+            const date = match
+                ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+                : new Date(raw);
+            if (Number.isNaN(date.getTime())) return raw;
+            return new Intl.DateTimeFormat('id-ID', {
+                day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+            }).format(date);
         }
 
         function getPaymentStatus(o) {
@@ -1639,7 +1662,7 @@
                     <div class="flex justify-between gap-2 items-start">
                         <div class="min-w-0">
                             <div class="font-bold text-[10px] text-slate-700 truncate">${p.payerName || 'Customer'}</div>
-                            <div class="text-[9px] text-slate-400">${p.date || '-'} • ${p.paymentType || 'Pembayaran'} • ${p.method || '-'}</div>
+                            <div class="text-[9px] text-slate-400">${formatPaymentDate(p.date)} • ${p.paymentType || 'Pembayaran'} • ${p.method || '-'}</div>
                             ${p.note ? `<div class="text-[9px] text-slate-500 mt-0.5">${p.note}</div>` : ''}
                         </div>
                         <div class="font-black text-[10px] text-emerald-600 whitespace-nowrap">${formatRp(p.amount)}</div>
@@ -2405,14 +2428,27 @@
             if (tabId === 'gaji-karyawan') { loadPayrollData().catch(err => showToast('Gagal memuat payroll: ' + err.message, 'error')); }
         }
 
-        function getDeadlineBadge(deadlineStr) {
+        function getDeadlineBadge(deadlineStr, orderStatus = '') {
+            if (String(orderStatus || '').trim().toLowerCase().includes('selesai')) {
+                return '<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-circle-check"></i> Selesai</span>';
+            }
             if (!deadlineStr) return '<span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-bold">-</span>';
-            const today = new Date(); today.setHours(0,0,0,0);
-            const target = new Date(deadlineStr); target.setHours(0,0,0,0);
-            const diffDays = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-            
-            if (diffDays < 0) return `<span class="bg-rose-100 text-rose-700 border border-rose-300 text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Overdue ${Math.abs(diffDays)}hr</span>`;
-            if (diffDays === 0) return `<span class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-fire"></i> Hari Ini!</span>`;
+
+            // Parse YYYY-MM-DD sebagai tanggal kalender lokal tanpa pergeseran UTC.
+            const match = String(deadlineStr).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
+            const target = match
+                ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+                : new Date(deadlineStr);
+            if (Number.isNaN(target.getTime())) {
+                return '<span class="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded font-bold">Deadline tidak valid</span>';
+            }
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            target.setHours(0, 0, 0, 0);
+            const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+
+            if (diffDays < 0) return `<span class="bg-rose-100 text-rose-700 border border-rose-300 text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Overdue ${Math.abs(diffDays)} hari</span>`;
+            if (diffDays === 0) return '<span class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-fire"></i> Hari Ini!</span>';
             if (diffDays <= 2) return `<span class="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded font-bold"><i class="fa-solid fa-clock"></i> H-${diffDays}</span>`;
             return `<span class="bg-emerald-100 text-emerald-800 border border-emerald-200 text-[10px] px-2 py-0.5 rounded font-bold">H-${diffDays}</span>`;
         }
@@ -2604,7 +2640,7 @@
                         </td>
                         <td class="p-3 text-[11px]">
                             <span class="block font-medium">${o.totalQty} Pcs - ${o.kain}</span>
-                            <span class="text-slate-500">${getDeadlineBadge(o.deadline)}</span>
+                            <span class="text-slate-500">${getDeadlineBadge(o.deadline, o.status)}</span>
                         </td>
                         <td class="p-3">
                             <button onclick="switchTab('daftar-pesanan')" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold border border-slate-200 transition">Detail</button>
@@ -2896,6 +2932,14 @@
 
         function resetOrderForm() {
             document.getElementById('form-new-order').reset();
+            const dpInput = document.getElementById('ord-dp');
+            const dpEditNote = document.getElementById('ord-dp-edit-note');
+            if (dpInput) {
+                dpInput.disabled = false;
+                dpInput.classList.remove('opacity-60', 'cursor-not-allowed');
+                dpInput.title = '';
+            }
+            if (dpEditNote) dpEditNote.classList.add('hidden');
             document.getElementById('ord-id').value = '';
             document.getElementById('sizes-container').innerHTML = '';
             document.getElementById('mockup-preview-box').innerHTML = `<i class="fa-solid fa-image text-3xl text-slate-400"></i><p class="text-xs text-slate-600 font-medium">Klik untuk pilih gambar lokal (Preview)</p>`;
@@ -2970,6 +3014,13 @@
             const cloudUrl = document.getElementById('ord-mockup-url')?.value || '';
 
             const isNew = !existingId;
+            const oldOrder = !isNew
+                ? appData.orders.find(o => String(o.id) === String(existingId))
+                : null;
+            if (!isNew && !oldOrder) {
+                showToast('Order yang akan diedit tidak ditemukan. Muat ulang daftar pesanan lalu coba lagi.', 'error');
+                return;
+            }
             const newId = isNew ? ('ORD-' + Math.floor(10000 + Math.random() * 90000)) : existingId;
 
             // Default status for new order by CS is Desain Pending
@@ -3106,7 +3157,7 @@
                     <tr class="hover:bg-slate-50">
                         <td class="p-4">
                             <span class="font-bold text-slate-900 block text-sm mb-1">${o.id}</span>
-                            ${getDeadlineBadge(o.deadline)}
+                            ${getDeadlineBadge(o.deadline, o.status)}
                         </td>
                         <td class="p-4">
                             <span class="font-semibold text-slate-800 block">${o.customer}</span>
@@ -3252,6 +3303,14 @@
             setValue('ord-kain', order.kain || '');
             setValue('ord-deadline', order.deadline ? String(order.deadline).slice(0,10) : '');
             setValue('ord-dp', order.dp || 0);
+            const dpInput = document.getElementById('ord-dp');
+            const dpEditNote = document.getElementById('ord-dp-edit-note');
+            if (dpInput) {
+                dpInput.disabled = true;
+                dpInput.classList.add('opacity-60', 'cursor-not-allowed');
+                dpInput.title = 'DP order lama tidak dapat diubah dari form edit.';
+            }
+            if (dpEditNote) dpEditNote.classList.remove('hidden');
             setValue('ord-notes', order.notes || '');
             setValue('ord-mockup-url', order.designMockupCloud || '');
 
@@ -3588,7 +3647,8 @@
                 await savePaymentToCloud(payment);
                 if (!Array.isArray(o.payments)) o.payments = [];
                 o.payments.push(payment);
-                o.dp = getOrderTotalPaid(o);
+                // Jangan timpa field DP awal dengan total seluruh pembayaran.
+                // Total pembayaran dihitung dari riwayat transaksi saat dibutuhkan.
                 saveLocalState();
                 closeModal('modalPayment');
                 scheduleFastRender();
@@ -4081,7 +4141,7 @@
             };
 
             filteredOrders.forEach(o => {
-                const deadlineBadge = getDeadlineBadge(o.deadline);
+                const deadlineBadge = getDeadlineBadge(o.deadline, o.status);
                 const nextStage = nextStageMap[o.status];
 
                 const sizeBadges = (o.sizes || []).map(s => 
@@ -5452,7 +5512,8 @@
                 sablon: document.getElementById('ord-sablon').value,
                 kain: document.getElementById('ord-kain').value,
                 deadline: document.getElementById('ord-deadline').value,
-                dp: Number(document.getElementById('ord-dp').value || 0),
+                // DP order lama dipertahankan; input DP hanya berlaku untuk order baru.
+                dp: isNew ? Math.max(0, Number(document.getElementById('ord-dp').value || 0)) : Number(oldOrder.dp || 0),
                 notes: document.getElementById('ord-notes').value,
                 status: orderStatus,
                 designStatus: designStatus,
@@ -5478,10 +5539,10 @@
             if (submitBtn) submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan order...';
             await saveOrderToCloud(orderObj);
 
-            // DP yang diinput di Form Order otomatis menjadi transaksi pembayaran pertama.
-            // ID dibuat deterministik agar saat order diedit tidak membuat DP ganda.
-            const initialDp = Number(orderObj.dp || 0);
-            if (initialDp > 0) {
+            // Hanya order baru yang membuat transaksi DP awal.
+            // Saat edit, transaksi pembayaran tidak dibuat atau diperbarui.
+            const initialDp = isNew ? Number(orderObj.dp || 0) : 0;
+            if (isNew && initialDp > 0) {
                 const dpPayment = {
                     id: orderObj.id + '-DP-AWAL',
                     orderId: orderObj.id,
