@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewAport" content="width=device-width, initial-scale=1.0">
     <title>Onpoint Apparel - All-in-One ERP & Financial Control System</title>
     <!--
       FREE BONUS DATA CONTRACT:
@@ -265,6 +265,12 @@
                         <p class="text-slate-500 text-sm">Ringkasan operasional, performa keuangan, dan status pengerjaan konveksi.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <select id="finance-period-select" onchange="selectFinancePeriod(this.value)" class="bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700">
+                            <option value="all">Semua Riwayat</option>
+                        </select>
+                        <button onclick="openFinancePeriodModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-calendar-plus mr-1"></i> Periode Baru</button>
+                        <button onclick="closeFinancePeriod()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-lock mr-1"></i> Tutup & Lanjutkan</button>
+                        <button onclick="exportFinanceArchive()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-download mr-1"></i> Unduh Arsip</button>
                         <button onclick="openNewOrderFromWorkspace()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center space-x-2 shadow-sm" title="Buat Order Baru">
                             <i class="fa-solid fa-cart-plus"></i>
                             <span>Buat Order Baru</span>
@@ -279,6 +285,7 @@
                         </button>
                     </div>
                 </div>
+                <div id="finance-period-banner" class="hidden rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900"></div>
 
                 <!-- KPI STAT CARDS -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -345,7 +352,7 @@
                     <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center justify-between">
                             <span><i class="fa-solid fa-chart-area text-brand-600 mr-2"></i> Perkembangan Tren Penjualan</span>
-                            <span class="text-xs text-slate-400 font-normal">Bulanan</span>
+                            <span class="text-xs text-slate-400 font-normal">Semua Riwayat • Bulanan</span>
                         </h3>
                         <div class="h-64">
                             <canvas id="revenueChart"></canvas>
@@ -354,7 +361,7 @@
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center justify-between">
                             <span><i class="fa-solid fa-chart-pie text-purple-600 mr-2"></i> Status Pengerjaan Order</span>
-                            <span class="text-xs text-slate-400 font-normal">Real-time</span>
+                            <span class="text-xs text-slate-400 font-normal">Semua Order • Real-time</span>
                         </h3>
                         <div class="h-64 flex items-center justify-center">
                             <canvas id="statusChart"></canvas>
@@ -1241,6 +1248,20 @@
         </div>
     </div>
 
+    <!-- MODAL PERIODE KEUANGAN -->
+    <div id="modalFinancePeriod" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            <div class="bg-emerald-800 text-white p-4 flex justify-between items-center"><h3 class="font-bold">Mulai Periode Keuangan</h3><button onclick="closeModal('modalFinancePeriod')"><i class="fa-solid fa-xmark"></i></button></div>
+            <form onsubmit="createFinancePeriod(event)" class="p-5 space-y-4 text-sm">
+                <p class="text-xs text-slate-600 bg-slate-50 rounded-lg p-3">Data lama tetap tersimpan. Saldo awal hanya menjadi titik mulai perhitungan periode baru, bukan omzet atau laba.</p>
+                <div><label class="font-semibold text-slate-700">Nama periode</label><input id="finance-period-name" required class="w-full border p-2.5 rounded-lg mt-1" placeholder="Contoh: Periode Pemulihan November 2026"></div>
+                <div class="grid grid-cols-2 gap-3"><div><label class="font-semibold text-slate-700">Tanggal mulai</label><input id="finance-period-start" type="date" required class="w-full border p-2.5 rounded-lg mt-1"></div><div><label class="font-semibold text-slate-700">Saldo awal kas & rekening (Rp)</label><input id="finance-period-opening" type="number" min="0" step="1" required class="w-full border p-2.5 rounded-lg mt-1" value="7890678"></div></div>
+                <p class="text-[11px] text-amber-800 bg-amber-50 rounded-lg p-3">Pastikan saldo awal adalah total dana usaha yang sudah Anda cocokkan. Piutang customer dicatat terpisah, bukan ditambahkan ke saldo kas.</p>
+                <div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeModal('modalFinancePeriod')" class="px-3 py-2 bg-slate-100 rounded-lg font-semibold">Batal</button><button class="px-4 py-2 bg-emerald-700 text-white rounded-lg font-bold">Simpan Periode</button></div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL EXPENSE -->
     <div id="modalExpense" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
@@ -1491,7 +1512,9 @@
             payrollPeriods: [],
             payrollItems: [],
             payrollPayments: [],
-            activePayrollPeriodId: ''
+            activePayrollPeriodId: '',
+            financePeriods: [],
+            selectedFinancePeriodId: 'all'
         };
 
         let revenueChartInstance = null;
@@ -2749,15 +2772,114 @@
             } catch (err) { showToast('Gagal membuka order: ' + err.message, 'error'); }
         }
 
+        function financeDate(value) { return String(value || '').slice(0, 10); }
+        function financePeriodById(id) { return (appData.financePeriods || []).find(p => String(p.id) === String(id)); }
+        function financePeriodContains(date, period) {
+            const d = financeDate(date);
+            return !!d && d >= period.startDate && (!period.endDate || d <= period.endDate);
+        }
+        function orderPaymentRows(order) {
+            const tx = Array.isArray(order?.payments) ? order.payments : [];
+            if (!tx.length) return [{ amount: Number(order?.dp || 0), date: order?.createdAt || '' }];
+            const hasInitialDp = tx.some(p => String(p?.paymentType || p?.payment_type || '').toLowerCase().includes('dp'));
+            const rows = tx.map(p => ({ amount: Number(p?.amount || 0), date: p?.date || p?.paymentDate || p?.payment_date || order?.createdAt || '' }));
+            if (!hasInitialDp && Number(order?.dp || 0) > 0) rows.push({ amount: Number(order.dp), date: order?.createdAt || '' });
+            return rows;
+        }
+        function financePeriodValues(period) {
+            const allHistory = !period;
+            const ordersForRevenue = appData.orders.filter(o => allHistory || financePeriodContains(o.createdAt || o.date, period));
+            const totalOmset = ordersForRevenue.reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
+            const totalHpp = ordersForRevenue.reduce((sum, o) => sum + Number(o.totalHpp || 0), 0);
+            const cashIn = appData.orders.reduce((sum, o) => sum + orderPaymentRows(o).filter(p => allHistory || financePeriodContains(p.date, period)).reduce((s, p) => s + (Number.isFinite(p.amount) ? p.amount : 0), 0), 0);
+            const expenses = appData.expenses.filter(e => e.status === 'Approved' && (allHistory || financePeriodContains(e.date, period)));
+            const totalExp = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+            const receivableCutoff = period?.endDate || new Date().toISOString().slice(0, 10);
+            const receivables = appData.orders.filter(o => financeDate(o.createdAt || o.date) && financeDate(o.createdAt || o.date) <= receivableCutoff).reduce((sum, o) => {
+                const paidThroughCutoff = orderPaymentRows(o).filter(p => financeDate(p.date) && financeDate(p.date) <= receivableCutoff).reduce((s, p) => s + (Number.isFinite(p.amount) ? p.amount : 0), 0);
+                return sum + Math.max(0, Number(o.totalPrice || 0) - paidThroughCutoff);
+            }, 0);
+            const netProfit = (totalOmset - totalHpp) - totalExp;
+            const recordedBalance = (allHistory ? 0 : Number(period.openingBalance || 0)) + cashIn - totalExp;
+            return { totalOmset, cashIn, totalHpp, totalExp, receivables, netProfit, recordedBalance, allHistory };
+        }
+        function refreshFinancePeriodOptions() {
+            const select = document.getElementById('finance-period-select');
+            if (!select) return;
+            const selected = appData.selectedFinancePeriodId || 'all';
+            select.innerHTML = '<option value="all">Semua Riwayat</option>' + (appData.financePeriods || []).slice().sort((a,b) => String(b.startDate).localeCompare(String(a.startDate))).map(p => {
+                const state = p.endDate ? 'Arsip' : 'Aktif';
+                const range = p.endDate ? `${p.startDate} s.d. ${p.endDate}` : `mulai ${p.startDate}`;
+                return `<option value="${String(p.id)}">${p.name} • ${state} (${range})</option>`;
+            }).join('');
+            if (selected !== 'all' && !financePeriodById(selected)) appData.selectedFinancePeriodId = 'all';
+            select.value = appData.selectedFinancePeriodId || 'all';
+        }
+        function selectFinancePeriod(id) {
+            appData.selectedFinancePeriodId = id || 'all';
+            saveLocalState();
+            renderDashboard();
+        }
+        function openFinancePeriodModal() {
+            const active = (appData.financePeriods || []).find(p => !p.endDate);
+            if (active) { showToast(`Tutup periode aktif “${active.name}” terlebih dahulu.`, 'error'); return; }
+            const today = new Date();
+            const localDate = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+            document.getElementById('finance-period-start').value = localDate;
+            document.getElementById('finance-period-name').value = `Periode ${new Intl.DateTimeFormat('id-ID',{month:'long',year:'numeric'}).format(today)}`;
+            document.getElementById('finance-period-opening').value = '';
+            openModal('modalFinancePeriod');
+        }
+        function createFinancePeriod(event) {
+            event.preventDefault();
+            const startDate = document.getElementById('finance-period-start').value;
+            const openingBalance = Number(document.getElementById('finance-period-opening').value);
+            if (!startDate || !Number.isFinite(openingBalance) || openingBalance < 0) { showToast('Tanggal mulai dan saldo awal harus diisi dengan benar.', 'error'); return; }
+            const period = { id: 'FIN-' + Date.now(), name: document.getElementById('finance-period-name').value.trim(), startDate, endDate: '', openingBalance, actualClosingBalance: null, createdAt: new Date().toISOString() };
+            appData.financePeriods = Array.isArray(appData.financePeriods) ? appData.financePeriods : [];
+            appData.financePeriods.push(period);
+            appData.selectedFinancePeriodId = period.id;
+            saveLocalState();
+            refreshFinancePeriodOptions();
+            renderDashboard();
+            closeModal('modalFinancePeriod');
+            showToast('Periode baru tersimpan. Data transaksi lama tetap utuh.', 'success');
+        }
+        function closeFinancePeriod() {
+            const period = financePeriodById(appData.selectedFinancePeriodId);
+            if (!period || period.endDate) { showToast('Pilih periode aktif yang ingin ditutup.', 'error'); return; }
+            const closeDate = prompt('Tanggal akhir periode (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+            if (!closeDate) return;
+            if (closeDate < period.startDate) { showToast('Tanggal akhir tidak boleh sebelum tanggal mulai.', 'error'); return; }
+            const closingText = prompt('Masukkan saldo kas dan rekening aktual yang sudah dicocokkan (Rp):', '');
+            if (closingText === null || closingText.trim() === '' || !Number.isFinite(Number(closingText)) || Number(closingText) < 0) { showToast('Saldo aktual belum valid; periode tidak ditutup.', 'error'); return; }
+            period.endDate = closeDate;
+            period.actualClosingBalance = Number(closingText);
+            saveLocalState();
+            refreshFinancePeriodOptions();
+            renderDashboard();
+            if (confirm('Periode telah diarsipkan. Buat periode lanjutan dengan saldo akhir aktual sebagai saldo awal?')) {
+                const next = new Date(`${closeDate}T12:00:00`); next.setDate(next.getDate()+1);
+                const nextDate = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
+                const newPeriod = { id: 'FIN-' + Date.now(), name: `Periode setelah ${period.name}`, startDate: nextDate, endDate: '', openingBalance: period.actualClosingBalance, actualClosingBalance: null, createdAt: new Date().toISOString() };
+                appData.financePeriods.push(newPeriod);
+                appData.selectedFinancePeriodId = newPeriod.id;
+                saveLocalState(); refreshFinancePeriodOptions(); renderDashboard();
+            }
+        }
+        function exportFinanceArchive() {
+            const { passwords, gasUrl, driveFolder, csNotificationEmail, ...archiveData } = appData;
+            const payload = { exportedAt: new Date().toISOString(), note: 'Arsip salinan data. File ini tidak mengubah data aplikasi. Pengaturan akses dan kredensial tidak disertakan.', data: archiveData };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `arsip-onpoint-${new Date().toISOString().slice(0,10)}.json`; link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+
         function renderDashboard() {
-            let totalOmset = appData.orders.reduce((sum, o) => sum + Number(o.totalPrice || 0), 0);
-            let cashIn = appData.orders.reduce((sum, o) => sum + getOrderTotalPaid(o), 0);
-            let totalHpp = appData.orders.reduce((sum, o) => sum + Number(o.totalHpp || 0), 0);
-            let totalExp = appData.expenses.filter(e => e.status === 'Approved').reduce((sum, e) => sum + Number(e.amount || 0), 0);
-            // Hitung piutang per order agar kelebihan bayar pada satu order tidak menghapus piutang order lain.
-            let receivables = appData.orders.reduce((sum, o) => sum + Math.max(0, Number(o.totalPrice || 0) - getOrderTotalPaid(o)), 0);
-            let netProfit = (totalOmset - totalHpp) - totalExp;
-            let recordedBalance = cashIn - totalExp;
+            refreshFinancePeriodOptions();
+            const selectedPeriod = financePeriodById(appData.selectedFinancePeriodId);
+            const values = financePeriodValues(selectedPeriod);
+            const { totalOmset, cashIn, totalHpp, totalExp, receivables, netProfit, recordedBalance, allHistory } = values;
 
             if(document.getElementById('dash-total-omset')) {
                 document.getElementById('dash-total-omset').innerText = formatRp(totalOmset);
@@ -2776,10 +2898,17 @@
                     messages.push(`<p><b>Pembayaran diterima:</b> ${formatRp(cashIn)}. <b>Pengeluaran:</b> ${formatRp(totalExp)}.</p>`);
                     if (recordedBalance < 0) messages.push(`<p class="text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Pengeluaran tercatat lebih besar daripada pembayaran yang diterima sebesar ${formatRp(Math.abs(recordedBalance))}. Periksa transaksi yang belum dicatat atau dibayar dari sumber lain.</p>`);
                     else if (cashIn === 0 && totalExp === 0) messages.push('<p>Belum ada transaksi pembayaran atau pengeluaran yang cukup untuk dianalisis.</p>');
-                    else messages.push(`<p class="text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>Saldo tercatat saat ini ${formatRp(recordedBalance)} setelah pengeluaran yang disetujui dikurangi.</p>`);
+                    else messages.push(`<p class="text-emerald-700"><i class="fa-solid fa-circle-check mr-1"></i>${allHistory ? 'Saldo seluruh riwayat' : `Saldo awal ${formatRp(Number(selectedPeriod.openingBalance || 0))} ditambah kas masuk dan dikurangi pengeluaran`} menghasilkan ${formatRp(recordedBalance)}.</p>`);
                     if (ratio !== null) messages.push(`<p>Porsi pengeluaran terhadap pembayaran masuk: <b>${ratio}%</b>.</p>`);
                     messages.push(`<p>Ada <b>${unpaidOrders}</b> order yang masih memiliki sisa tagihan. Saldo ini hanya berdasarkan transaksi yang sudah dimasukkan ke aplikasi, bukan verifikasi otomatis saldo fisik/rekening.</p>`);
                     analysisEl.innerHTML = messages.join('');
+                }
+                const banner = document.getElementById('finance-period-banner');
+                if (banner) {
+                    banner.classList.remove('hidden');
+                    banner.innerHTML = allHistory
+                        ? '<b>Tampilan Semua Riwayat:</b> menampilkan akumulasi transaksi historis. Pilih periode atau buat periode baru untuk melihat saldo awal dan transaksi per periode.'
+                        : `<b>${selectedPeriod.name}</b> • ${selectedPeriod.startDate}${selectedPeriod.endDate ? ` s.d. ${selectedPeriod.endDate}` : ' • sedang berjalan'} • Saldo awal ${formatRp(selectedPeriod.openingBalance)}${selectedPeriod.actualClosingBalance !== null ? ` • Saldo akhir aktual ${formatRp(selectedPeriod.actualClosingBalance)} • Selisih rekonsiliasi ${formatRp(Number(selectedPeriod.actualClosingBalance) - recordedBalance)}` : ''}. Angka saldo berjalan memakai transaksi tercatat dan belum menggantikan rekonsiliasi kas fisik.`;
                 }
 
                 document.getElementById('pl-total-contract').innerText = formatRp(totalOmset);
