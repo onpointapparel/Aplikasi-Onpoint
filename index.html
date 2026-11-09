@@ -96,6 +96,53 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        /* Colorful Operations redesign: left navigation, bright workspace, multicolor data accents. */
+        #main-app { flex-direction: row; background: #f3f6fb; color: #17243b; }
+        .app-sidebar { position: sticky; top: 0; display: flex; flex: 0 0 252px; flex-direction: column; width: 252px; height: 100vh; padding: 24px 16px 16px; color: #d9e4f4; background: linear-gradient(180deg,#101d38 0%,#14294a 100%); box-shadow: 8px 0 28px rgba(15,31,58,.10); z-index: 40; }
+        .sidebar-brand { display:flex; align-items:center; gap:12px; padding: 2px 7px 24px; border-bottom:1px solid rgba(203,221,245,.14); }
+        .sidebar-brand-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; color:#fff; font-size:20px; background:linear-gradient(135deg,#1687f8,#7258ef); box-shadow:0 7px 18px rgba(43,116,234,.3); }
+        .sidebar-brand-name { display:block; color:#fff; font-size:18px; line-height:1.1; font-weight:800; letter-spacing:.04em; }
+        .sidebar-brand-subtitle { display:block; margin-top:5px; color:#9eb3d2; font-size:9px; font-weight:700; letter-spacing:.16em; }
+        .sidebar-version { color:#6f8cb6; letter-spacing:.05em; }
+        .sidebar-section-label { padding:22px 10px 10px; color:#7187a9; font-size:9px; font-weight:800; letter-spacing:.16em; }
+        .sidebar-navigation { flex:1; overflow-y:auto; overflow-x:hidden; }
+        #nav-container { display:flex; flex-direction:column; gap:6px; }
+        #nav-container .nav-btn-item { width:100%; min-height:44px; justify-content:flex-start; border:0; border-radius:12px; color:#b7c7df; text-align:left; background:transparent; }
+        #nav-container .nav-btn-item i { display:inline-flex; width:22px; justify-content:center; font-size:15px; color:#72b8ff; }
+        #nav-container .nav-btn-item:nth-child(4n + 2) i { color:#ffb84d; }
+        #nav-container .nav-btn-item:nth-child(4n + 3) i { color:#37d4c1; }
+        #nav-container .nav-btn-item:nth-child(4n + 4) i { color:#b292ff; }
+        #nav-container .nav-btn-item:hover { color:#fff; background:rgba(255,255,255,.09); }
+        #nav-container .nav-btn-item.is-active { color:#fff; background:linear-gradient(100deg,#147fe8,#7156e9); box-shadow:0 7px 18px rgba(36,103,220,.27); }
+        #nav-container .nav-btn-item.is-active i { color:#fff; }
+        .sidebar-footer { display:flex; align-items:center; gap:9px; margin-top:14px; padding:15px 10px 4px; border-top:1px solid rgba(203,221,245,.14); color:#8fa5c5; font-size:11px; }
+        .sidebar-status-dot { width:8px; height:8px; border-radius:50%; background:#35d69b; box-shadow:0 0 0 4px rgba(53,214,155,.13); }
+        .app-main-shell { display:flex; flex:1; flex-direction:column; min-width:0; min-height:100vh; }
+        .app-topbar { border-bottom:1px solid #e6ebf3; box-shadow:0 3px 14px rgba(24,47,82,.04); }
+        .app-topbar #cloud-sync-status, .app-topbar .bg-slate-800 { background:#f3f6fb; border-color:#e3e9f2; color:#596981; }
+        .app-topbar #current-user-badge { color:#34445d; }
+        .app-topbar #nav-notification-btn { color:#334155; }
+        .app-content { max-width:none; }
+        #main-app main > section { max-width:1600px; margin-left:auto; margin-right:auto; }
+        #main-app .bg-white.rounded-2xl, #main-app .bg-white.rounded-xl { border-color:#e5eaf2; box-shadow:0 5px 18px rgba(24,47,82,.045); }
+        #main-app .bg-brand-600 { background-color:#2478ed; }
+        #main-app .text-brand-600, #main-app .text-brand-500 { color:#2478ed; }
+        #main-app .border-brand-500 { border-color:#2478ed; }
+        #main-app .bg-slate-100 { background-color:#f2f5fa; }
+        #main-app .bg-gradient-to-r.from-brand-600 { background-image:linear-gradient(110deg,#237be9,#4b55d9 58%,#7754e8); }
+        @media (max-width: 767px) {
+            .app-sidebar { flex-basis:76px; width:76px; padding:16px 9px 12px; }
+            .sidebar-brand { justify-content:center; padding:2px 0 18px; }
+            .sidebar-brand > div:last-child, .sidebar-section-label, .sidebar-footer span:last-child, #nav-container .nav-btn-item span { display:none; }
+            .sidebar-brand-icon { width:42px; height:42px; }
+            #nav-container .nav-btn-item { justify-content:center; padding:12px 0; }
+            #nav-container .nav-btn-item i { width:auto; font-size:17px; }
+            .app-topbar > div { padding-left:12px; padding-right:12px; }
+            .app-content { padding:14px 12px; }
+        }
+        @media (max-width: 520px) {
+            .app-sidebar { flex-basis:64px; width:64px; padding-left:6px; padding-right:6px; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col">
@@ -158,20 +205,21 @@
     </div>
 
     <!-- MAIN APP STRUCTURE -->
-    <div id="main-app" class="hidden flex-1 flex flex-col min-h-screen">
-        <header class="bg-slate-900 text-white shadow-md sticky top-0 z-30">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                    <div class="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center font-black text-white shadow">
-                        <i class="fa-solid fa-shirt text-lg"></i>
-                    </div>
-                    <div>
-                        <span class="font-extrabold text-lg tracking-wide text-white block leading-none">ONPOINT</span>
-                        <span class="text-[10px] text-brand-500 tracking-widest font-semibold uppercase block mt-0.5">Apparel ERP v4.5</span>
-                    </div>
-                </div>
-
-                <!-- Cloud Storage / Sheets Cloud Integration & User Info -->
+    <div id="main-app" class="hidden flex flex-1 min-h-screen">
+    <aside id="app-sidebar" class="app-sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon"><i class="fa-solid fa-shirt"></i></div>
+            <div><span class="sidebar-brand-name">ONPOINT</span><span class="sidebar-brand-subtitle">APPAREL ERP <span class="sidebar-version">v4.5</span></span></div>
+        </div>
+        <div class="sidebar-section-label">MENU UTAMA</div>
+        <nav class="sidebar-navigation custom-scrollbar" aria-label="Navigasi utama">
+            <div id="nav-container"><!-- Dynamic sidebar navigation --></div>
+        </nav>
+        <div class="sidebar-footer"><span class="sidebar-status-dot"></span><span>Sistem operasional</span></div>
+    </aside>
+    <div class="app-main-shell">
+        <header class="app-topbar bg-white sticky top-0 z-30">
+            <div class="max-w-none w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"><!-- Cloud Storage / Sheets Cloud Integration & User Info -->
                 <div class="flex items-center space-x-3">
                     <div id="cloud-sync-status" class="hidden sm:flex items-center bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300">
                         <i class="fa-solid fa-cloud text-sky-400 mr-2"></i>
@@ -196,15 +244,9 @@
                     </button>
                 </div>
             </div>
-
-            <nav class="bg-slate-800 border-t border-slate-700/60 overflow-x-auto custom-scrollbar">
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 py-2" id="nav-container">
-                    <!-- Dynamic Navigation Buttons injected by JS based on Role -->
-                </div>
-            </nav>
         </header>
 
-        <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+        <main class="app-content flex-1 min-w-0 w-full mx-auto p-4 sm:p-6 lg:p-8">
             
             <!-- 0. VIEW CS WORKSPACE (DASHBOARD AWAL CS) -->
             <section id="view-cs-workspace" class="space-y-6 hidden">
@@ -312,88 +354,80 @@
                     </div>
                 </div>
                 <div id="finance-period-banner" class="hidden rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900"></div>
-
-                <!-- KPI STAT CARDS -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- KPI CARDS: operational summary matching the approved reference -->
+                <div class="dashboard-kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl">
-                            <i class="fa-solid fa-wallet"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase">Total Omset Penjualan</p>
-                            <h3 id="dash-total-omset" class="text-xl font-bold text-slate-800">Rp 0</h3>
-                        </div>
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-shirt"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pesanan</p><h3 id="dash-total-orders" class="text-xl font-bold text-slate-800">0</h3></div>
                     </div>
-
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
-                            <i class="fa-solid fa-hand-holding-dollar"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase">Kas Masuk (DP & Lunas)</p>
-                            <h3 id="dash-cash-in" class="text-xl font-bold text-emerald-600">Rp 0</h3>
-                        </div>
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-industry"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Produksi</p><h3 id="dash-production-qty" class="text-xl font-bold text-slate-800">0 pcs</h3></div>
                     </div>
-
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl">
-                            <i class="fa-solid fa-clock-rotate-left"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase">Sisa Piutang Customer</p>
-                            <h3 id="dash-receivables" class="text-xl font-bold text-amber-600">Rp 0</h3>
-                        </div>
+                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-coins"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pendapatan</p><h3 id="dash-total-omset" class="text-xl font-bold text-slate-800">Rp 0</h3></div>
                     </div>
-
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl">
-                            <i class="fa-solid fa-chart-line"></i>
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pelanggan</p><h3 id="dash-customer-count" class="text-xl font-bold text-slate-800">0</h3></div>
+                    </div>
+                </div>
+                <!-- DASHBOARD VISUAL OVERVIEW -->
+                <div class="dashboard-visual-grid grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div class="dashboard-panel dashboard-trend-panel lg:col-span-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-start justify-between gap-3 mb-3">
+                            <div><h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-chart-column text-blue-600 mr-2"></i>Tren Penjualan</h3><p class="text-xs text-slate-500 mt-1">Perkembangan nilai order dari waktu ke waktu</p></div>
+                            <span class="dashboard-panel-chip">Bulanan</span>
                         </div>
-                        <div>
-                            <p class="text-xs font-medium text-slate-500 uppercase">Laba Bersih Estimasi</p>
-                            <h3 id="dash-net-profit" class="text-xl font-bold text-slate-800">Rp 0</h3>
-                        </div>
+                        <div class="dashboard-chart-wrap"><canvas id="revenueChart"></canvas></div>
+                    </div>
+                    <div class="dashboard-panel dashboard-production-panel lg:col-span-3 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="mb-2"><h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-layer-group text-violet-600 mr-2"></i>Status Produksi</h3><p class="text-xs text-slate-500 mt-1">Ringkasan tahap pengerjaan order</p></div>
+                        <div class="dashboard-donut-wrap"><canvas id="statusChart"></canvas></div>
+                        <div id="dashboard-production-breakdown" class="dashboard-production-breakdown"></div>
+                    </div>
+                    <div class="dashboard-panel dashboard-activity-panel lg:col-span-3 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-center justify-between gap-2 mb-3"><div><h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-bolt text-amber-500 mr-2"></i>Aktivitas Terbaru</h3><p class="text-xs text-slate-500 mt-1">Catatan order dan pembayaran</p></div></div>
+                        <div id="dashboard-activity-feed" class="dashboard-activity-feed"></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-panel dashboard-orders-panel bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between gap-3">
+                        <div><h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-bag-shopping text-orange-500 mr-2"></i>Pesanan Terbaru</h3><p class="text-xs text-slate-500 mt-1">Pesanan yang terakhir dicatat di sistem</p></div>
+                        <button onclick="switchTab('daftar-pesanan')" class="text-xs font-bold text-blue-600 hover:text-blue-800 whitespace-nowrap">Lihat semua <i class="fa-solid fa-arrow-right ml-1"></i></button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs dashboard-orders-table">
+                            <thead><tr><th>No. Pesanan</th><th>Pelanggan</th><th>Produk</th><th>Jumlah</th><th>Nilai Pesanan</th><th>Status</th><th>Deadline</th></tr></thead>
+                            <tbody id="dashboard-recent-orders"><tr><td colspan="7" class="p-5 text-center text-slate-400">Memuat pesanan...</td></tr></tbody>
+                        </table>
                     </div>
                 </div>
 
                 <!-- RINGKASAN ARUS UANG TERCATAT -->
+                <div class="dashboard-finance-detail-heading"><span>Ringkasan Keuangan</span><span>Rincian transaksi dan analisis</span></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-200 flex items-center space-x-4">
+                    <div class="dashboard-finance-detail-card bg-white p-5 rounded-2xl shadow-sm border border-emerald-200 flex items-center space-x-4">
                         <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-transfer"></i></div>
                         <div><p class="text-xs font-medium text-slate-500 uppercase">Saldo Tercatat (Pembayaran - Pengeluaran)</p><h3 id="dash-recorded-balance" class="text-xl font-bold text-emerald-700">Rp 0</h3><p class="text-[10px] text-slate-400 mt-1">Perkiraan uang tersisa berdasarkan transaksi yang dicatat.</p></div>
                     </div>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-rose-200 flex items-center space-x-4">
+                    <div class="dashboard-finance-detail-card bg-white p-5 rounded-2xl shadow-sm border border-rose-200 flex items-center space-x-4">
                         <div class="w-12 h-12 bg-rose-100 text-rose-700 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-receipt"></i></div>
                         <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pengeluaran Tercatat</p><h3 id="dash-total-expenses" class="text-xl font-bold text-rose-700">Rp 0</h3><p class="text-[10px] text-slate-400 mt-1">Pengeluaran berstatus Approved.</p></div>
                     </div>
                 </div>
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-brand-600"></i> Analisis Keuangan Otomatis</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-teal"><i class="fa-solid fa-money-bill-transfer"></i></div><div><p>Kas Masuk</p><h3 id="dash-cash-in">Rp 0</h3></div></div>
+                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-coral"><i class="fa-solid fa-clock-rotate-left"></i></div><div><p>Sisa Piutang</p><h3 id="dash-receivables">Rp 0</h3></div></div>
+                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-violet"><i class="fa-solid fa-chart-line"></i></div><div><p>Laba Bersih Estimasi</p><h3 id="dash-net-profit">Rp 0</h3></div></div>
+                </div>`r`n                <div class="dashboard-analysis-card bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>Analisis Keuangan Otomatis</h3>
                     <p class="text-xs text-slate-500 mb-3">Analisis berdasarkan data transaksi aplikasi; tidak memerlukan koneksi AI eksternal sehingga tidak menambah beban aplikasi.</p>
                     <div id="dash-financial-analysis" class="text-sm text-slate-700 space-y-2"><p>Analisis akan muncul setelah data keuangan dimuat.</p></div>
                 </div>
 
-                <!-- CHARTS ROW -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center justify-between">
-                            <span><i class="fa-solid fa-chart-area text-brand-600 mr-2"></i> Perkembangan Tren Penjualan</span>
-                            <span class="text-xs text-slate-400 font-normal">Semua Riwayat • Bulanan</span>
-                        </h3>
-                        <div class="h-64">
-                            <canvas id="revenueChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center justify-between">
-                            <span><i class="fa-solid fa-chart-pie text-purple-600 mr-2"></i> Status Pengerjaan Order</span>
-                            <span class="text-xs text-slate-400 font-normal">Semua Order • Real-time</span>
-                        </h3>
-                        <div class="h-64 flex items-center justify-center">
-                            <canvas id="statusChart"></canvas>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- FINANCIAL SUMMARY TABLE -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -1006,6 +1040,7 @@
 
         </main>
     </div>
+</div>
 
     <!-- MODAL CLOUD SYNC & DATABASE CONFIG -->
     <div id="modalCloudSync" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4">
@@ -2400,14 +2435,14 @@
             let tabs = [];
             if (appData.role === 'owner') {
                 tabs = [
-                    { id: 'dashboard', label: 'Dashboard Owner', icon: 'fa-chart-pie' },
-                    { id: 'daftar-pesanan', label: 'Semua Pesanan', icon: 'fa-list-check' },
-                    { id: 'pengeluaran', label: 'Keuangan & Payroll', icon: 'fa-wallet' },
+                    { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
+                    { id: 'daftar-pesanan', label: 'Pesanan', icon: 'fa-list-check' },
+                    { id: 'produksi-kanban', label: 'Produksi & QC', icon: 'fa-diagram-project' },
+                    { id: 'crm', label: 'Pelanggan', icon: 'fa-users' },
+                    { id: 'pengeluaran', label: 'Keuangan', icon: 'fa-wallet' },
                     { id: 'gaji-karyawan', label: 'Gaji Karyawan', icon: 'fa-users-gear' },
                     { id: 'stok', label: 'Stok & PO', icon: 'fa-boxes-stacked' },
-                    { id: 'crm', label: 'Database CRM', icon: 'fa-users' },
-                    { id: 'produksi-kanban', label: 'Workflow QC', icon: 'fa-diagram-project' },
-                    { id: 'total-produksi', label: 'Total Produksi Kaos', icon: 'fa-chart-column' }
+                    { id: 'total-produksi', label: 'Laporan Produksi', icon: 'fa-chart-column' }
                 ];
                 // Show/hide owner specific elements
                 document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
@@ -2434,7 +2469,7 @@
             navContainer.innerHTML = '';
             tabs.forEach((t, idx) => {
                 navContainer.innerHTML += `
-                    <button onclick="switchTab('${t.id}')" id="nav-btn-${t.id}" class="nav-btn-item flex items-center space-x-2 px-3.5 py-2.5 rounded-t-lg text-xs font-semibold whitespace-nowrap transition border-b-2 border-transparent text-slate-400 hover:text-white hover:bg-slate-700/50 ${idx === 0 ? 'text-brand-400 border-brand-500 bg-slate-800' : ''}">
+                    <button onclick="switchTab('${t.id}')" id="nav-btn-${t.id}" title="${t.label}" class="nav-btn-item flex items-center space-x-3 px-3.5 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition ${idx === 0 ? 'is-active' : ''}">
                         <i class="fa-solid ${t.icon}"></i>
                         <span>${t.label}</span>
                     </button>
@@ -2453,8 +2488,7 @@
         function switchTab(tabId) {
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.nav-btn-item').forEach(b => {
-                b.classList.remove('text-brand-400', 'border-brand-500', 'bg-slate-800');
-                b.classList.add('text-slate-400', 'border-transparent');
+                b.classList.remove('is-active');
             });
 
             const activeSection = document.getElementById(`view-${tabId}`);
@@ -2462,8 +2496,7 @@
 
             const activeBtn = document.getElementById(`nav-btn-${tabId}`);
             if (activeBtn) {
-                activeBtn.classList.add('text-brand-400', 'border-brand-500', 'bg-slate-800');
-                activeBtn.classList.remove('text-slate-400', 'border-transparent');
+                activeBtn.classList.add('is-active');
             }
 
             if (tabId === 'dashboard') renderCharts();
@@ -2947,6 +2980,71 @@
                 document.getElementById('pl-exp-total').innerText = formatRp(totalExp);
                 document.getElementById('pl-net-profit-final').innerText = formatRp(netProfit);
             }
+            renderDashboardWidgets();
+        }
+
+        function renderDashboardWidgets() {
+            const orders = Array.isArray(appData.orders) ? appData.orders : [];
+            const escapeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            const sortedOrders = [...orders].sort((a, b) => String(b.createdAt || b.id || '').localeCompare(String(a.createdAt || a.id || '')));
+            const totalProduction = orders.reduce((sum, order) => sum + Number(order.totalQty || (Array.isArray(order.sizes) ? order.sizes.reduce((part, row) => part + Number(row.qty || 0), 0) : 0)), 0);
+            const customerRecords = Array.isArray(appData.customers) ? appData.customers : [];
+            const customerKeys = customerRecords.map(customer => String(customer.phone || customer.id || customer.name || '').trim().toLocaleLowerCase()).filter(Boolean);
+            const customerCount = customerKeys.length ? new Set(customerKeys).size : new Set(orders.map(order => String(order.customer || '').trim().toLocaleLowerCase()).filter(Boolean)).size;
+            const orderCountEl = document.getElementById('dash-total-orders');
+            const productionQtyEl = document.getElementById('dash-production-qty');
+            const customerCountEl = document.getElementById('dash-customer-count');
+            if (orderCountEl) orderCountEl.innerText = orders.length.toLocaleString('id-ID');
+            if (productionQtyEl) productionQtyEl.innerText = `${totalProduction.toLocaleString('id-ID')} pcs`;
+            if (customerCountEl) customerCountEl.innerText = customerCount.toLocaleString('id-ID');
+
+            const recentBody = document.getElementById('dashboard-recent-orders');
+            if (recentBody) {
+                if (!sortedOrders.length) {
+                    recentBody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Belum ada pesanan yang tercatat.</td></tr>';
+                } else {
+                    recentBody.innerHTML = sortedOrders.slice(0, 5).map(order => {
+                        const status = String(order.status || 'Antrian');
+                        const statusClass = status === 'Selesai / Lunas' ? 'status-complete' : (['Potong Kain','Sablon / Bordir','Proses Jahit','QC & Packing'].includes(status) ? 'status-production' : (status === 'Desain Pending' ? 'status-pending' : 'status-queue'));
+                        const qty = Number(order.totalQty || (Array.isArray(order.sizes) ? order.sizes.reduce((sum, row) => sum + Number(row.qty || 0), 0) : 0));
+                        return `<tr><td><span class="dashboard-order-id">${escapeText(order.id || '—')}</span></td><td>${escapeText(order.customer || 'Pelanggan')}</td><td>${escapeText(order.sablon || order.kain || 'Apparel custom')}</td><td>${qty.toLocaleString('id-ID')} pcs</td><td>${formatRp(Number(order.totalPrice || 0))}</td><td><span class="dashboard-status-pill ${statusClass}">${escapeText(status)}</span></td><td>${escapeText(order.deadline || '—')}</td></tr>`;
+                    }).join('');
+                }
+            }
+
+            const productionBreakdown = document.getElementById('dashboard-production-breakdown');
+            if (productionBreakdown) {
+                const groups = [
+                    {label:'Dalam Produksi', icon:'fa-gears', color:'blue', statuses:['Potong Kain','Sablon / Bordir','Proses Jahit','QC & Packing']},
+                    {label:'Menunggu', icon:'fa-hourglass-half', color:'amber', statuses:['Antrian','Desain Pending']},
+                    {label:'Selesai', icon:'fa-circle-check', color:'green', statuses:['Selesai / Lunas']}
+                ];
+                const total = Math.max(1, orders.length);
+                productionBreakdown.innerHTML = groups.map(group => {
+                    const count = orders.filter(order => group.statuses.includes(order.status)).length;
+                    const pct = Math.round(count / total * 100);
+                    return `<div class="dashboard-stage-row"><div class="dashboard-stage-label"><span><i class="fa-solid ${group.icon} stage-${group.color}"></i>${group.label}</span><b>${count}</b></div><div class="dashboard-stage-track"><span class="stage-fill-${group.color}" style="width:${pct}%"></span></div></div>`;
+                }).join('');
+            }
+
+            const feed = document.getElementById('dashboard-activity-feed');
+            if (feed) {
+                const events = [];
+                orders.forEach(order => {
+                    const customer = order.customer || 'Pelanggan';
+                    const base = {orderId: order.id || '', customer};
+                    if (order.createdAt) events.push({...base, date:order.createdAt, label:'Pesanan dicatat', detail:`${order.id || 'Order'} · ${customer}`, icon:'fa-cart-plus', color:'blue'});
+                    (Array.isArray(order.payments) ? order.payments : []).forEach(payment => {
+                        if (Number(payment.amount || 0) > 0 && payment.date) events.push({...base, date:payment.date, label:'Pembayaran diterima', detail:`${order.id || 'Order'} · ${formatRp(Number(payment.amount || 0))}`, icon:'fa-wallet', color:'green'});
+                    });
+                });
+                events.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                feed.innerHTML = events.length ? events.slice(0, 7).map(event => {
+                    const date = new Date(event.date);
+                    const dateText = Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
+                    return `<div class="dashboard-activity-item"><span class="dashboard-activity-icon activity-${event.color}"><i class="fa-solid ${event.icon}"></i></span><div class="min-w-0"><div class="dashboard-activity-title">${event.label}</div><div class="dashboard-activity-detail">${escapeText(event.detail)}</div></div><time>${dateText}</time></div>`;
+                }).join('') : '<div class="dashboard-activity-empty"><i class="fa-regular fa-calendar-check"></i><span>Aktivitas akan muncul setelah pesanan atau pembayaran tercatat.</span></div>';
+            }
         }
 
         function renderCharts() {
@@ -2960,7 +3058,7 @@
                         datasets: [{
                             label: 'Omset (Rp)',
                             data: [12000000, 18500000, 15000000, 22000000, appData.orders.reduce((s, o) => s + o.totalPrice, 0)],
-                            borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', fill: true, tension: 0.3
+                            borderColor: '#2784f5', backgroundColor: 'rgba(39, 132, 245, 0.12)', pointBackgroundColor: ['#2784f5','#20c2b4','#ff7a75','#8464ed','#f3ad3f'], pointBorderColor: '#ffffff', pointBorderWidth: 2, pointRadius: 5, fill: true, tension: 0.35
                         }]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
@@ -2971,18 +3069,18 @@
             if (ctxStatus) {
                 if (statusChartInstance) statusChartInstance.destroy();
                 const counts = {
-                    Desain: appData.orders.filter(o => o.status === 'Desain Pending').length,
-                    Antrian: appData.orders.filter(o => o.status === 'Antrian').length,
-                    Produksi: appData.orders.filter(o => ['Potong Kain', 'Sablon / Bordir', 'Proses Jahit', 'QC & Packing'].includes(o.status)).length,
+                    Menunggu: appData.orders.filter(o => ['Desain Pending', 'Antrian'].includes(o.status)).length,
+                    Produksi: appData.orders.filter(o => ['Potong Kain', 'Sablon / Bordir', 'Proses Jahit'].includes(o.status)).length,
+                    QC: appData.orders.filter(o => o.status === 'QC & Packing').length,
                     Selesai: appData.orders.filter(o => o.status === 'Selesai / Lunas').length
                 };
                 statusChartInstance = new Chart(ctxStatus, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Desain/Pending', 'Antrian Baru', 'Dalam Produksi', 'Selesai'],
+                        labels: ['Menunggu', 'Dalam Produksi', 'QC & Packing', 'Selesai'],
                         datasets: [{
-                            data: [counts.Desain, counts.Antrian, counts.Produksi, counts.Selesai],
-                            backgroundColor: ['#f59e0b', '#94a3b8', '#0284c7', '#10b981']
+                            data: [counts.Menunggu, counts.Produksi, counts.QC, counts.Selesai],
+                            backgroundColor: ['#f4b23f', '#3788f3', '#8a63e8', '#24bd91']
                         }]
                     },
                     options: { responsive: true, maintainAspectRatio: false }
@@ -5094,10 +5192,189 @@
                 visibility: visible !important;
             }
         }
+        /* Colorful Operations redesign: left navigation, bright workspace, multicolor data accents. */
+        #main-app { flex-direction: row; background: #f3f6fb; color: #17243b; }
+        .app-sidebar { position: sticky; top: 0; display: flex; flex: 0 0 252px; flex-direction: column; width: 252px; height: 100vh; padding: 24px 16px 16px; color: #d9e4f4; background: linear-gradient(180deg,#101d38 0%,#14294a 100%); box-shadow: 8px 0 28px rgba(15,31,58,.10); z-index: 40; }
+        .sidebar-brand { display:flex; align-items:center; gap:12px; padding: 2px 7px 24px; border-bottom:1px solid rgba(203,221,245,.14); }
+        .sidebar-brand-icon { display:grid; place-items:center; width:42px; height:42px; border-radius:14px; color:#fff; font-size:20px; background:linear-gradient(135deg,#1687f8,#7258ef); box-shadow:0 7px 18px rgba(43,116,234,.3); }
+        .sidebar-brand-name { display:block; color:#fff; font-size:18px; line-height:1.1; font-weight:800; letter-spacing:.04em; }
+        .sidebar-brand-subtitle { display:block; margin-top:5px; color:#9eb3d2; font-size:9px; font-weight:700; letter-spacing:.16em; }
+        .sidebar-version { color:#6f8cb6; letter-spacing:.05em; }
+        .sidebar-section-label { padding:22px 10px 10px; color:#7187a9; font-size:9px; font-weight:800; letter-spacing:.16em; }
+        .sidebar-navigation { flex:1; overflow-y:auto; overflow-x:hidden; }
+        #nav-container { display:flex; flex-direction:column; gap:6px; }
+        #nav-container .nav-btn-item { width:100%; min-height:44px; justify-content:flex-start; border:0; border-radius:12px; color:#b7c7df; text-align:left; background:transparent; }
+        #nav-container .nav-btn-item i { display:inline-flex; width:22px; justify-content:center; font-size:15px; color:#72b8ff; }
+        #nav-container .nav-btn-item:nth-child(4n + 2) i { color:#ffb84d; }
+        #nav-container .nav-btn-item:nth-child(4n + 3) i { color:#37d4c1; }
+        #nav-container .nav-btn-item:nth-child(4n + 4) i { color:#b292ff; }
+        #nav-container .nav-btn-item:hover { color:#fff; background:rgba(255,255,255,.09); }
+        #nav-container .nav-btn-item.is-active { color:#fff; background:linear-gradient(100deg,#147fe8,#7156e9); box-shadow:0 7px 18px rgba(36,103,220,.27); }
+        #nav-container .nav-btn-item.is-active i { color:#fff; }
+        .sidebar-footer { display:flex; align-items:center; gap:9px; margin-top:14px; padding:15px 10px 4px; border-top:1px solid rgba(203,221,245,.14); color:#8fa5c5; font-size:11px; }
+        .sidebar-status-dot { width:8px; height:8px; border-radius:50%; background:#35d69b; box-shadow:0 0 0 4px rgba(53,214,155,.13); }
+        .app-main-shell { display:flex; flex:1; flex-direction:column; min-width:0; min-height:100vh; }
+        .app-topbar { border-bottom:1px solid #e6ebf3; box-shadow:0 3px 14px rgba(24,47,82,.04); }
+        .app-topbar #cloud-sync-status, .app-topbar .bg-slate-800 { background:#f3f6fb; border-color:#e3e9f2; color:#596981; }
+        .app-topbar #current-user-badge { color:#34445d; }
+        .app-topbar #nav-notification-btn { color:#334155; }
+        .app-content { max-width:none; }
+        #main-app main > section { max-width:1600px; margin-left:auto; margin-right:auto; }
+        #main-app .bg-white.rounded-2xl, #main-app .bg-white.rounded-xl { border-color:#e5eaf2; box-shadow:0 5px 18px rgba(24,47,82,.045); }
+        #main-app .bg-brand-600 { background-color:#2478ed; }
+        #main-app .text-brand-600, #main-app .text-brand-500 { color:#2478ed; }
+        #main-app .border-brand-500 { border-color:#2478ed; }
+        #main-app .bg-slate-100 { background-color:#f2f5fa; }
+        #main-app .bg-gradient-to-r.from-brand-600 { background-image:linear-gradient(110deg,#237be9,#4b55d9 58%,#7754e8); }
+        @media (max-width: 767px) {
+            .app-sidebar { flex-basis:76px; width:76px; padding:16px 9px 12px; }
+            .sidebar-brand { justify-content:center; padding:2px 0 18px; }
+            .sidebar-brand > div:last-child, .sidebar-section-label, .sidebar-footer span:last-child, #nav-container .nav-btn-item span { display:none; }
+            .sidebar-brand-icon { width:42px; height:42px; }
+            #nav-container .nav-btn-item { justify-content:center; padding:12px 0; }
+            #nav-container .nav-btn-item i { width:auto; font-size:17px; }
+            .app-topbar > div { padding-left:12px; padding-right:12px; }
+            .app-content { padding:14px 12px; }
+        }
+        @media (max-width: 520px) {
+            .app-sidebar { flex-basis:64px; width:64px; padding-left:6px; padding-right:6px; }
+        }
     </style>
 </head>
 <body>
     <div id="print-document-root">${content}</div>
+
+<style>
+/* Dashboard and workspace visual system: colorful, compact, and consistent with the selected concept. */
+#main-app { background:#f3f6fb; }
+#main-app .app-content { padding-top:24px; }
+#main-app main > section { max-width:1600px; }
+#main-app main > section > h2 { color:#17243b; letter-spacing:-.025em; }
+#main-app main > section > p { color:#6b7a91; }
+#main-app main > section .bg-white { border-color:#e5eaf2; box-shadow:0 5px 18px rgba(24,47,82,.045); }
+#main-app main > section .rounded-2xl { border-radius:18px; }
+#main-app main > section button { transition:transform .16s ease, box-shadow .16s ease, filter .16s ease; }
+#main-app main > section button:hover { filter:saturate(1.08); }
+#main-app main > section input:not([type=checkbox]), #main-app main > section select, #main-app main > section textarea { border-color:#dce4f0; border-radius:11px; }
+#main-app main > section table thead { background:#f2f5fa; color:#586981; }
+#main-app main > section table thead th { padding:12px 14px; font-size:10px; font-weight:800; letter-spacing:.045em; text-transform:uppercase; white-space:nowrap; }
+#main-app main > section table tbody tr { transition:background .15s ease; }
+#main-app main > section table tbody tr:hover { background:#f7f9fd; }
+#view-dashboard { max-width:1600px; margin:0 auto; }
+#view-dashboard .dashboard-page-title { font-size:30px; color:#17243b; }
+#view-dashboard .dashboard-kpi-grid > div { position:relative; min-height:108px; overflow:hidden; border:1px solid #e4eaf3; border-radius:18px; padding:18px; box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-kpi-grid > div::after { position:absolute; content:""; left:0; top:0; bottom:0; width:4px; background:var(--kpi-color,#2583ed); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { --kpi-color:#2f83f5; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { --kpi-color:#22bfae; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { --kpi-color:#f3a539; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { --kpi-color:#8760ea; }
+#view-dashboard .dashboard-kpi-grid > div > div:first-child { flex:0 0 48px; width:48px; height:48px; border-radius:15px; color:var(--kpi-color); background:color-mix(in srgb,var(--kpi-color) 13%,white); }
+#view-dashboard .dashboard-kpi-grid > div p { font-size:10px; font-weight:800; letter-spacing:.06em; color:#75839a; }
+#view-dashboard .dashboard-kpi-grid > div h3 { margin-top:4px; font-size:clamp(17px,1.45vw,23px); letter-spacing:-.025em; color:#17243b; }
+#view-dashboard .dashboard-visual-grid { align-items:stretch; }
+#view-dashboard .dashboard-panel { min-width:0; border-radius:18px; box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-chart-wrap { position:relative; height:260px; }
+#view-dashboard .dashboard-donut-wrap { position:relative; height:155px; max-width:220px; margin:0 auto 8px; }
+#view-dashboard .dashboard-panel-chip { flex:none; padding:7px 10px; border:1px solid #e4eaf3; border-radius:10px; background:#f7f9fd; color:#586981; font-size:10px; font-weight:700; }
+#view-dashboard .dashboard-production-breakdown { display:grid; gap:11px; }
+#view-dashboard .dashboard-stage-row { display:grid; gap:5px; }
+#view-dashboard .dashboard-stage-label { display:flex; justify-content:space-between; gap:8px; color:#56667d; font-size:10px; }
+#view-dashboard .dashboard-stage-label span { display:flex; align-items:center; gap:7px; }
+#view-dashboard .dashboard-stage-label b { color:#253650; }
+#view-dashboard .stage-blue { color:#2583ed; }.stage-amber { color:#f2a73c; }.stage-green { color:#21b987; }
+#view-dashboard .dashboard-stage-track { height:6px; overflow:hidden; border-radius:999px; background:#edf1f7; }
+#view-dashboard .dashboard-stage-track span { display:block; height:100%; border-radius:inherit; }
+#view-dashboard .stage-fill-blue { background:linear-gradient(90deg,#2583ed,#43b5f5); }.stage-fill-amber { background:linear-gradient(90deg,#f3a539,#ffd16b); }.stage-fill-green { background:linear-gradient(90deg,#20b987,#54d7a6); }
+#view-dashboard .dashboard-activity-feed { display:grid; gap:0; }
+#view-dashboard .dashboard-activity-item { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:start; gap:9px; padding:11px 0; border-bottom:1px solid #edf1f6; }
+#view-dashboard .dashboard-activity-item:last-child { border-bottom:0; }
+#view-dashboard .dashboard-activity-icon { display:grid; place-items:center; width:30px; height:30px; border-radius:10px; font-size:12px; }
+#view-dashboard .activity-blue { color:#2583ed; background:#e8f2ff; }.activity-green { color:#13a879; background:#e5faf2; }
+#view-dashboard .dashboard-activity-title { color:#273750; font-size:10px; font-weight:800; line-height:1.4; }
+#view-dashboard .dashboard-activity-detail { overflow:hidden; margin-top:3px; color:#718098; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+#view-dashboard .dashboard-activity-item time { padding-top:2px; color:#91a0b4; font-size:9px; white-space:nowrap; }
+#view-dashboard .dashboard-activity-empty { display:grid; place-items:center; gap:10px; min-height:180px; padding:18px; color:#94a1b4; font-size:11px; text-align:center; }
+#view-dashboard .dashboard-activity-empty i { color:#45b8cc; font-size:22px; }
+#view-dashboard .dashboard-orders-panel { box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-orders-table { min-width:800px; }
+#view-dashboard .dashboard-orders-table td { padding:12px 14px; border-bottom:1px solid #edf1f6; color:#485970; white-space:nowrap; }
+#view-dashboard .dashboard-orders-table tbody tr:last-child td { border-bottom:0; }
+#view-dashboard .dashboard-order-id { color:#2377dc; font-weight:800; }
+#view-dashboard .dashboard-status-pill { display:inline-flex; padding:5px 9px; border-radius:999px; font-size:9px; font-weight:800; }
+#view-dashboard .status-production { color:#176bd1; background:#e4f0ff; }
+#view-dashboard .status-pending { color:#b76b00; background:#fff2d8; }
+#view-dashboard .status-queue { color:#7251c9; background:#f0eaff; }
+#view-dashboard .status-complete { color:#07895e; background:#e3f8ef; }
+#view-dashboard .dashboard-finance-detail-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:4px 2px 0; color:#22334c; font-size:17px; font-weight:800; }
+#view-dashboard .dashboard-finance-detail-heading span:last-child { color:#8896a9; font-size:10px; font-weight:500; }
+#view-dashboard .dashboard-finance-detail-card, #view-dashboard .dashboard-analysis-card { border-radius:18px; }
+#view-dashboard #finance-period-banner { border-radius:14px; }
+@media (min-width:1280px) { #view-dashboard .dashboard-activity-panel { min-height:100%; } }
+@media (max-width:1100px) { #view-dashboard .dashboard-visual-grid > div { grid-column:span 6; } #view-dashboard .dashboard-activity-panel { grid-column:span 12; } #view-dashboard .dashboard-activity-feed { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:18px; } }
+@media (max-width:767px) { #main-app .app-content { padding-top:16px; } #view-dashboard .dashboard-page-title { font-size:24px; } #view-dashboard .dashboard-chart-wrap { height:230px; } #view-dashboard .dashboard-visual-grid > div, #view-dashboard .dashboard-activity-panel { grid-column:span 1; } #view-dashboard .dashboard-activity-feed { grid-template-columns:1fr; } #view-dashboard .dashboard-finance-detail-heading { align-items:flex-start; flex-direction:column; gap:3px; } }
+</style>
+
+<style>
+/* Final palette refinement based on the approved colorful dashboard concept. */
+.app-sidebar { background:#101d3b; box-shadow:8px 0 28px rgba(13,29,59,.10); }
+.sidebar-brand-icon { background:linear-gradient(135deg,#2788f7 0%,#18c6d2 100%); box-shadow:0 7px 18px rgba(39,136,247,.26); }
+.sidebar-brand-name { letter-spacing:.055em; }
+#nav-container .nav-btn-item:nth-child(1) i { color:#56a5ff; }
+#nav-container .nav-btn-item:nth-child(2) i { color:#ffb541; }
+#nav-container .nav-btn-item:nth-child(3) i { color:#27d0bd; }
+#nav-container .nav-btn-item:nth-child(4) i { color:#55b8f2; }
+#nav-container .nav-btn-item:nth-child(5) i { color:#ff9e62; }
+#nav-container .nav-btn-item:nth-child(6) i { color:#a889ff; }
+#nav-container .nav-btn-item:nth-child(7) i { color:#ff7180; }
+#nav-container .nav-btn-item:nth-child(8) i { color:#55d39a; }
+#nav-container .nav-btn-item.is-active i { color:#fff !important; }
+#nav-container .nav-btn-item.is-active { background:linear-gradient(105deg,#1286f6 0%,#655bf1 100%); box-shadow:0 8px 20px rgba(44,111,233,.32); }
+#view-dashboard .dashboard-kpi-grid > div { border:0; box-shadow:0 9px 22px rgba(31,55,91,.13); }
+#view-dashboard .dashboard-kpi-grid > div::after { display:none; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { background:linear-gradient(120deg,#2276ed,#328ff5); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { background:linear-gradient(120deg,#13afa9,#21c7c0); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { background:linear-gradient(120deg,#f16d70,#fa817c); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { background:linear-gradient(120deg,#7655dc,#9168ee); }
+#view-dashboard .dashboard-kpi-grid > div > div:first-child { width:52px; height:52px; color:#fff; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.15); }
+#view-dashboard .dashboard-kpi-grid > div p { color:rgba(255,255,255,.86); }
+#view-dashboard .dashboard-kpi-grid > div h3 { color:#fff; font-size:clamp(18px,1.5vw,24px); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { --kpi-color:#fff; }
+#view-dashboard .dashboard-panel { border-color:#e5ebf4; }
+#view-dashboard .dashboard-panel > div:first-child h3 { letter-spacing:-.015em; }
+#view-dashboard .dashboard-stage-track { background:#edf1f8; }
+#view-dashboard .dashboard-activity-icon { width:32px; height:32px; }
+#view-dashboard .activity-blue { color:#fff; background:#348af2; }
+#view-dashboard .activity-green { color:#fff; background:#22bd91; }
+#view-dashboard .dashboard-orders-table thead { background:#f0f4fa; }
+#view-dashboard .dashboard-status-pill { padding:5px 10px; }
+#view-dashboard .status-production { color:#176bd1; background:#e4f0ff; }
+#view-dashboard .status-pending { color:#b76b00; background:#fff2d8; }
+#view-dashboard .status-queue { color:#7251c9; background:#f0eaff; }
+#view-dashboard .status-complete { color:#07895e; background:#e3f8ef; }
+@media (max-width:767px) { #view-dashboard .dashboard-kpi-grid > div { min-height:96px; padding:14px; } }
+</style>
+
+<style>
+/* Secondary financial indicators retain the same colorful icon language. */
+#view-dashboard .dashboard-finance-mini { display:flex; align-items:center; gap:12px; min-width:0; padding:16px; border:1px solid #e5ebf4; border-radius:16px; background:#fff; box-shadow:0 5px 16px rgba(31,55,91,.045); }
+#view-dashboard .dashboard-finance-mini-icon { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border-radius:13px; font-size:15px; }
+#view-dashboard .mini-teal { color:#fff; background:#20bfb2; }.mini-coral { color:#fff; background:#f27477; }.mini-violet { color:#fff; background:#8462e8; }
+#view-dashboard .dashboard-finance-mini p { margin:0 0 3px; color:#738198; font-size:9px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+#view-dashboard .dashboard-finance-mini h3 { margin:0; overflow:hidden; color:#22334c; font-size:clamp(14px,1.15vw,18px); font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { background:linear-gradient(120deg,#2181f3,#338ff7); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { background:linear-gradient(120deg,#10b7ae,#27c7bd); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { background:linear-gradient(120deg,#f26f72,#fa807b); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { background:linear-gradient(120deg,#7655dc,#9368ee); }
+@media (max-width:767px) { #view-dashboard .dashboard-finance-mini { padding:13px; } }
+</style>
+
+<style>
+#view-dashboard .stage-violet { color:#8a63e8; }
+#view-dashboard .stage-fill-violet { background:linear-gradient(90deg,#7655dc,#a27af5); }
+</style>
 </body>
 </html>`);
             printWindow.document.close();
@@ -5749,5 +6026,137 @@
     });
 })();
 </script>
+
+<style>
+/* Dashboard and workspace visual system: colorful, compact, and consistent with the selected concept. */
+#main-app { background:#f3f6fb; }
+#main-app .app-content { padding-top:24px; }
+#main-app main > section { max-width:1600px; }
+#main-app main > section > h2 { color:#17243b; letter-spacing:-.025em; }
+#main-app main > section > p { color:#6b7a91; }
+#main-app main > section .bg-white { border-color:#e5eaf2; box-shadow:0 5px 18px rgba(24,47,82,.045); }
+#main-app main > section .rounded-2xl { border-radius:18px; }
+#main-app main > section button { transition:transform .16s ease, box-shadow .16s ease, filter .16s ease; }
+#main-app main > section button:hover { filter:saturate(1.08); }
+#main-app main > section input:not([type=checkbox]), #main-app main > section select, #main-app main > section textarea { border-color:#dce4f0; border-radius:11px; }
+#main-app main > section table thead { background:#f2f5fa; color:#586981; }
+#main-app main > section table thead th { padding:12px 14px; font-size:10px; font-weight:800; letter-spacing:.045em; text-transform:uppercase; white-space:nowrap; }
+#main-app main > section table tbody tr { transition:background .15s ease; }
+#main-app main > section table tbody tr:hover { background:#f7f9fd; }
+#view-dashboard { max-width:1600px; margin:0 auto; }
+#view-dashboard .dashboard-page-title { font-size:30px; color:#17243b; }
+#view-dashboard .dashboard-kpi-grid > div { position:relative; min-height:108px; overflow:hidden; border:1px solid #e4eaf3; border-radius:18px; padding:18px; box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-kpi-grid > div::after { position:absolute; content:""; left:0; top:0; bottom:0; width:4px; background:var(--kpi-color,#2583ed); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { --kpi-color:#2f83f5; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { --kpi-color:#22bfae; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { --kpi-color:#f3a539; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { --kpi-color:#8760ea; }
+#view-dashboard .dashboard-kpi-grid > div > div:first-child { flex:0 0 48px; width:48px; height:48px; border-radius:15px; color:var(--kpi-color); background:color-mix(in srgb,var(--kpi-color) 13%,white); }
+#view-dashboard .dashboard-kpi-grid > div p { font-size:10px; font-weight:800; letter-spacing:.06em; color:#75839a; }
+#view-dashboard .dashboard-kpi-grid > div h3 { margin-top:4px; font-size:clamp(17px,1.45vw,23px); letter-spacing:-.025em; color:#17243b; }
+#view-dashboard .dashboard-visual-grid { align-items:stretch; }
+#view-dashboard .dashboard-panel { min-width:0; border-radius:18px; box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-chart-wrap { position:relative; height:260px; }
+#view-dashboard .dashboard-donut-wrap { position:relative; height:155px; max-width:220px; margin:0 auto 8px; }
+#view-dashboard .dashboard-panel-chip { flex:none; padding:7px 10px; border:1px solid #e4eaf3; border-radius:10px; background:#f7f9fd; color:#586981; font-size:10px; font-weight:700; }
+#view-dashboard .dashboard-production-breakdown { display:grid; gap:11px; }
+#view-dashboard .dashboard-stage-row { display:grid; gap:5px; }
+#view-dashboard .dashboard-stage-label { display:flex; justify-content:space-between; gap:8px; color:#56667d; font-size:10px; }
+#view-dashboard .dashboard-stage-label span { display:flex; align-items:center; gap:7px; }
+#view-dashboard .dashboard-stage-label b { color:#253650; }
+#view-dashboard .stage-blue { color:#2583ed; }.stage-amber { color:#f2a73c; }.stage-green { color:#21b987; }
+#view-dashboard .dashboard-stage-track { height:6px; overflow:hidden; border-radius:999px; background:#edf1f7; }
+#view-dashboard .dashboard-stage-track span { display:block; height:100%; border-radius:inherit; }
+#view-dashboard .stage-fill-blue { background:linear-gradient(90deg,#2583ed,#43b5f5); }.stage-fill-amber { background:linear-gradient(90deg,#f3a539,#ffd16b); }.stage-fill-green { background:linear-gradient(90deg,#20b987,#54d7a6); }
+#view-dashboard .dashboard-activity-feed { display:grid; gap:0; }
+#view-dashboard .dashboard-activity-item { display:grid; grid-template-columns:32px minmax(0,1fr) auto; align-items:start; gap:9px; padding:11px 0; border-bottom:1px solid #edf1f6; }
+#view-dashboard .dashboard-activity-item:last-child { border-bottom:0; }
+#view-dashboard .dashboard-activity-icon { display:grid; place-items:center; width:30px; height:30px; border-radius:10px; font-size:12px; }
+#view-dashboard .activity-blue { color:#2583ed; background:#e8f2ff; }.activity-green { color:#13a879; background:#e5faf2; }
+#view-dashboard .dashboard-activity-title { color:#273750; font-size:10px; font-weight:800; line-height:1.4; }
+#view-dashboard .dashboard-activity-detail { overflow:hidden; margin-top:3px; color:#718098; font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+#view-dashboard .dashboard-activity-item time { padding-top:2px; color:#91a0b4; font-size:9px; white-space:nowrap; }
+#view-dashboard .dashboard-activity-empty { display:grid; place-items:center; gap:10px; min-height:180px; padding:18px; color:#94a1b4; font-size:11px; text-align:center; }
+#view-dashboard .dashboard-activity-empty i { color:#45b8cc; font-size:22px; }
+#view-dashboard .dashboard-orders-panel { box-shadow:0 7px 20px rgba(31,55,91,.055); }
+#view-dashboard .dashboard-orders-table { min-width:800px; }
+#view-dashboard .dashboard-orders-table td { padding:12px 14px; border-bottom:1px solid #edf1f6; color:#485970; white-space:nowrap; }
+#view-dashboard .dashboard-orders-table tbody tr:last-child td { border-bottom:0; }
+#view-dashboard .dashboard-order-id { color:#2377dc; font-weight:800; }
+#view-dashboard .dashboard-status-pill { display:inline-flex; padding:5px 9px; border-radius:999px; font-size:9px; font-weight:800; }
+#view-dashboard .status-production { color:#176bd1; background:#e4f0ff; }
+#view-dashboard .status-pending { color:#b76b00; background:#fff2d8; }
+#view-dashboard .status-queue { color:#7251c9; background:#f0eaff; }
+#view-dashboard .status-complete { color:#07895e; background:#e3f8ef; }
+#view-dashboard .dashboard-finance-detail-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:4px 2px 0; color:#22334c; font-size:17px; font-weight:800; }
+#view-dashboard .dashboard-finance-detail-heading span:last-child { color:#8896a9; font-size:10px; font-weight:500; }
+#view-dashboard .dashboard-finance-detail-card, #view-dashboard .dashboard-analysis-card { border-radius:18px; }
+#view-dashboard #finance-period-banner { border-radius:14px; }
+@media (min-width:1280px) { #view-dashboard .dashboard-activity-panel { min-height:100%; } }
+@media (max-width:1100px) { #view-dashboard .dashboard-visual-grid > div { grid-column:span 6; } #view-dashboard .dashboard-activity-panel { grid-column:span 12; } #view-dashboard .dashboard-activity-feed { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:18px; } }
+@media (max-width:767px) { #main-app .app-content { padding-top:16px; } #view-dashboard .dashboard-page-title { font-size:24px; } #view-dashboard .dashboard-chart-wrap { height:230px; } #view-dashboard .dashboard-visual-grid > div, #view-dashboard .dashboard-activity-panel { grid-column:span 1; } #view-dashboard .dashboard-activity-feed { grid-template-columns:1fr; } #view-dashboard .dashboard-finance-detail-heading { align-items:flex-start; flex-direction:column; gap:3px; } }
+</style>
+
+<style>
+/* Final palette refinement based on the approved colorful dashboard concept. */
+.app-sidebar { background:#101d3b; box-shadow:8px 0 28px rgba(13,29,59,.10); }
+.sidebar-brand-icon { background:linear-gradient(135deg,#2788f7 0%,#18c6d2 100%); box-shadow:0 7px 18px rgba(39,136,247,.26); }
+.sidebar-brand-name { letter-spacing:.055em; }
+#nav-container .nav-btn-item:nth-child(1) i { color:#56a5ff; }
+#nav-container .nav-btn-item:nth-child(2) i { color:#ffb541; }
+#nav-container .nav-btn-item:nth-child(3) i { color:#27d0bd; }
+#nav-container .nav-btn-item:nth-child(4) i { color:#55b8f2; }
+#nav-container .nav-btn-item:nth-child(5) i { color:#ff9e62; }
+#nav-container .nav-btn-item:nth-child(6) i { color:#a889ff; }
+#nav-container .nav-btn-item:nth-child(7) i { color:#ff7180; }
+#nav-container .nav-btn-item:nth-child(8) i { color:#55d39a; }
+#nav-container .nav-btn-item.is-active i { color:#fff !important; }
+#nav-container .nav-btn-item.is-active { background:linear-gradient(105deg,#1286f6 0%,#655bf1 100%); box-shadow:0 8px 20px rgba(44,111,233,.32); }
+#view-dashboard .dashboard-kpi-grid > div { border:0; box-shadow:0 9px 22px rgba(31,55,91,.13); }
+#view-dashboard .dashboard-kpi-grid > div::after { display:none; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { background:linear-gradient(120deg,#2276ed,#328ff5); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { background:linear-gradient(120deg,#13afa9,#21c7c0); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { background:linear-gradient(120deg,#f16d70,#fa817c); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { background:linear-gradient(120deg,#7655dc,#9168ee); }
+#view-dashboard .dashboard-kpi-grid > div > div:first-child { width:52px; height:52px; color:#fff; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.15); }
+#view-dashboard .dashboard-kpi-grid > div p { color:rgba(255,255,255,.86); }
+#view-dashboard .dashboard-kpi-grid > div h3 { color:#fff; font-size:clamp(18px,1.5vw,24px); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { --kpi-color:#fff; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { --kpi-color:#fff; }
+#view-dashboard .dashboard-panel { border-color:#e5ebf4; }
+#view-dashboard .dashboard-panel > div:first-child h3 { letter-spacing:-.015em; }
+#view-dashboard .dashboard-stage-track { background:#edf1f8; }
+#view-dashboard .dashboard-activity-icon { width:32px; height:32px; }
+#view-dashboard .activity-blue { color:#fff; background:#348af2; }
+#view-dashboard .activity-green { color:#fff; background:#22bd91; }
+#view-dashboard .dashboard-orders-table thead { background:#f0f4fa; }
+#view-dashboard .dashboard-status-pill { padding:5px 10px; }
+#view-dashboard .status-production { color:#176bd1; background:#e4f0ff; }
+#view-dashboard .status-pending { color:#b76b00; background:#fff2d8; }
+#view-dashboard .status-queue { color:#7251c9; background:#f0eaff; }
+#view-dashboard .status-complete { color:#07895e; background:#e3f8ef; }
+@media (max-width:767px) { #view-dashboard .dashboard-kpi-grid > div { min-height:96px; padding:14px; } }
+</style>
+
+<style>
+/* Secondary financial indicators retain the same colorful icon language. */
+#view-dashboard .dashboard-finance-mini { display:flex; align-items:center; gap:12px; min-width:0; padding:16px; border:1px solid #e5ebf4; border-radius:16px; background:#fff; box-shadow:0 5px 16px rgba(31,55,91,.045); }
+#view-dashboard .dashboard-finance-mini-icon { display:grid; place-items:center; flex:0 0 40px; width:40px; height:40px; border-radius:13px; font-size:15px; }
+#view-dashboard .mini-teal { color:#fff; background:#20bfb2; }.mini-coral { color:#fff; background:#f27477; }.mini-violet { color:#fff; background:#8462e8; }
+#view-dashboard .dashboard-finance-mini p { margin:0 0 3px; color:#738198; font-size:9px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+#view-dashboard .dashboard-finance-mini h3 { margin:0; overflow:hidden; color:#22334c; font-size:clamp(14px,1.15vw,18px); font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(1) { background:linear-gradient(120deg,#2181f3,#338ff7); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(2) { background:linear-gradient(120deg,#10b7ae,#27c7bd); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(3) { background:linear-gradient(120deg,#f26f72,#fa807b); }
+#view-dashboard .dashboard-kpi-grid > div:nth-child(4) { background:linear-gradient(120deg,#7655dc,#9368ee); }
+@media (max-width:767px) { #view-dashboard .dashboard-finance-mini { padding:13px; } }
+</style>
+
+<style>
+#view-dashboard .stage-violet { color:#8a63e8; }
+#view-dashboard .stage-fill-violet { background:linear-gradient(90deg,#7655dc,#a27af5); }
+</style>
 </body>
 </html>
