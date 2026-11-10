@@ -215,38 +215,18 @@
         <nav class="sidebar-navigation custom-scrollbar" aria-label="Navigasi utama">
             <div id="nav-container"><!-- Dynamic sidebar navigation --></div>
         </nav>
+        <div class="sidebar-toolbox" aria-label="Akses cepat">
+            <div id="cloud-sync-status" class="sidebar-cloud-status" title="Mode Lokal" aria-label="Mode Lokal"><i class="fa-solid fa-cloud text-sky-400"></i><span id="cloud-sync-text" class="sr-only">Mode Lokal</span></div>
+            <button onclick="openCloudSyncModal()" class="sidebar-tool-button sidebar-tool-config" title="Database Config" aria-label="Database Config"><i class="fa-solid fa-cloud-arrow-up"></i></button>
+            <button id="nav-notification-btn" onclick="toggleCSNotificationPanel()" class="hidden sidebar-tool-button sidebar-tool-notification relative" title="Notifikasi" aria-label="Notifikasi"><i class="fa-regular fa-bell"></i><span id="global-notif-badge" class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white">0</span></button>
+            <button onclick="handleLogout()" class="sidebar-tool-button sidebar-tool-logout" title="Keluar" aria-label="Keluar"><i class="fa-solid fa-right-from-bracket"></i></button>
+        </div>
+        <div id="sidebar-owner-profile" class="sidebar-owner-profile hidden" title="Owner" aria-label="Owner"><i class="fa-solid fa-user"></i><span>Owner</span></div>
+        <span id="current-user-badge" class="sr-only">Customer Service</span>
         <div class="sidebar-footer"><span class="sidebar-status-dot"></span><span>Sistem operasional</span></div>
     </aside>
     <div class="app-main-shell">
-        <header class="app-topbar bg-white sticky top-0 z-30">
-            <div class="max-w-none w-full mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between"><!-- Cloud Storage / Sheets Cloud Integration & User Info -->
-                <div class="flex items-center space-x-3">
-                    <div id="cloud-sync-status" class="hidden sm:flex items-center bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-xs text-slate-300">
-                        <i class="fa-solid fa-cloud text-sky-400 mr-2"></i>
-                        <span id="cloud-sync-text">Mode Lokal</span>
-                    </div>
-                    <button onclick="openCloudSyncModal()" class="bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-sky-500/30 flex items-center space-x-1.5" title="Integrasi Cloud Storage & Sheets">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span class="hidden md:inline">Database Config</span>
-                    </button>
-                    <div class="hidden sm:flex items-center bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700">
-                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
-                        <span id="current-user-badge" class="text-xs font-semibold text-slate-200 uppercase tracking-wider">Customer Service</span>
-                    </div>
-                    <!-- Notification Badge for CS -->
-                    <button id="nav-notification-btn" onclick="toggleCSNotificationPanel()" class="hidden relative bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-slate-700 flex items-center">
-                        <i class="fa-regular fa-bell"></i>
-                        <span id="global-notif-badge" class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white">0</span>
-                    </button>
-                    <button onclick="handleLogout()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-red-500/30 flex items-center space-x-1.5">
-                        <i class="fa-solid fa-right-from-bracket"></i>
-                        <span class="hidden sm:inline">Keluar</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <main class="app-content flex-1 min-w-0 w-full mx-auto p-4 sm:p-6 lg:p-8">
+<main class="app-content flex-1 min-w-0 w-full mx-auto p-4 sm:p-6 lg:p-8">
             
             <!-- 0. VIEW CS WORKSPACE (DASHBOARD AWAL CS) -->
             <section id="view-cs-workspace" class="space-y-6 hidden">
@@ -320,7 +300,7 @@
 
             <!-- 1. VIEW DASHBOARD (OWNER) -->
             <section id="view-dashboard" class="space-y-6 hidden">
-                <div class="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-4">
+                <div class="dashboard-heading-row">
                     <div class="min-w-0">
                         <h2 class="dashboard-page-title text-2xl md:text-3xl font-extrabold text-slate-900">Dashboard Owner</h2>
                         <p class="text-slate-500 text-sm mt-1">Ringkasan keuangan dan operasional konveksi.</p>
@@ -340,37 +320,37 @@
                         </button>
                     </div>
                 </div>
-                <div class="dashboard-period-toolbar bg-white rounded-2xl p-3 md:p-4 flex flex-col lg:flex-row lg:items-end justify-between gap-3">
-                    <div class="min-w-0 flex-1">
-                        <label for="finance-period-select" class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1.5">Periode keuangan</label>
-                        <select id="finance-period-select" onchange="selectFinancePeriod(this.value)" class="w-full lg:max-w-xl bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700">
-                            <option value="all">Semua Riwayat</option>
-                        </select>
+                <div class="dashboard-overview-grid grid grid-cols-1 lg:grid-cols-12 gap-4">
+                    <div class="dashboard-kpi-grid dashboard-kpi-overview grid grid-cols-1 sm:grid-cols-2 gap-4 lg:col-span-6">
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-coins"></i></div>
+                            <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pendapatan</p><h3 id="dash-total-omset" class="text-xl font-bold text-slate-800">Rp 0</h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                            <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pelanggan</p><h3 id="dash-customer-count" class="text-xl font-bold text-slate-800">0</h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-shirt"></i></div>
+                            <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pesanan</p><h3 id="dash-total-orders" class="text-xl font-bold text-slate-800">0</h3></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-industry"></i></div>
+                            <div><p class="text-xs font-medium text-slate-500 uppercase">Total Produksi</p><h3 id="dash-production-qty" class="text-xl font-bold text-slate-800">0 pcs</h3></div>
+                        </div>
                     </div>
-                    <div class="dashboard-period-actions flex flex-wrap gap-2">
-                        <button onclick="openFinancePeriodModal()" class="dashboard-toolbar-action bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-calendar-plus mr-1"></i> Periode Baru</button>
-                        <button onclick="closeFinancePeriod()" class="dashboard-toolbar-action bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-lock mr-1"></i> Tutup & Lanjutkan</button>
-                        <button onclick="exportFinanceArchive()" class="dashboard-toolbar-action bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-download mr-1"></i> Unduh Arsip</button>
-                    </div>
-                </div>
-                <div id="finance-period-banner" class="hidden rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900"></div>
-                <!-- KPI CARDS: operational summary matching the approved reference -->
-                <div class="dashboard-kpi-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-shirt"></i></div>
-                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pesanan</p><h3 id="dash-total-orders" class="text-xl font-bold text-slate-800">0</h3></div>
-                    </div>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-industry"></i></div>
-                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Produksi</p><h3 id="dash-production-qty" class="text-xl font-bold text-slate-800">0 pcs</h3></div>
-                    </div>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-coins"></i></div>
-                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pendapatan</p><h3 id="dash-total-omset" class="text-xl font-bold text-slate-800">Rp 0</h3></div>
-                    </div>
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
-                        <div><p class="text-xs font-medium text-slate-500 uppercase">Total Pelanggan</p><h3 id="dash-customer-count" class="text-xl font-bold text-slate-800">0</h3></div>
+                    <div class="dashboard-period-toolbar bg-white rounded-2xl p-4 lg:col-span-6">
+                        <div class="min-w-0">
+                            <label for="finance-period-select" class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-2">Periode keuangan</label>
+                            <select id="finance-period-select" onchange="selectFinancePeriod(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700">
+                                <option value="all">Semua Riwayat</option>
+                            </select>
+                        </div>
+                        <div class="dashboard-period-actions">
+                            <button onclick="openFinancePeriodModal()" class="dashboard-toolbar-action bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-calendar-plus mr-1"></i> Periode Baru</button>
+                            <button onclick="closeFinancePeriod()" class="dashboard-toolbar-action bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-lock mr-1"></i> Tutup & Lanjutkan</button>
+                            <button onclick="exportFinanceArchive()" class="dashboard-toolbar-action bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs"><i class="fa-solid fa-download mr-1"></i> Unduh Arsip</button>
+                        </div>
                     </div>
                 </div>
                 <!-- DASHBOARD VISUAL OVERVIEW -->
@@ -407,7 +387,7 @@
                 </div>
 
                 <!-- RINGKASAN ARUS UANG TERCATAT -->
-                <div class="dashboard-finance-detail-heading"><span>Ringkasan Keuangan</span><span>Rincian transaksi dan analisis</span></div>
+                <div class="dashboard-finance-detail-heading"><span>Ringkasan Keuangan</span></div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="dashboard-finance-detail-card bg-white p-5 rounded-2xl shadow-sm border border-emerald-200 flex items-center space-x-4">
                         <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-money-bill-transfer"></i></div>
@@ -421,15 +401,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                     <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-teal"><i class="fa-solid fa-money-bill-transfer"></i></div><div><p>Kas Masuk</p><h3 id="dash-cash-in">Rp 0</h3></div></div>
                     <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-coral"><i class="fa-solid fa-clock-rotate-left"></i></div><div><p>Sisa Piutang</p><h3 id="dash-receivables">Rp 0</h3></div></div>
-                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-violet"><i class="fa-solid fa-chart-line"></i></div><div><p>Laba Bersih Estimasi</p><h3 id="dash-net-profit">Rp 0</h3></div></div>
-                </div>`r`n                <div class="dashboard-analysis-card bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-2"><i class="fa-solid fa-wand-magic-sparkles text-violet-600"></i>Analisis Keuangan Otomatis</h3>
-                    <p class="text-xs text-slate-500 mb-3">Analisis berdasarkan data transaksi aplikasi; tidak memerlukan koneksi AI eksternal sehingga tidak menambah beban aplikasi.</p>
-                    <div id="dash-financial-analysis" class="text-sm text-slate-700 space-y-2"><p>Analisis akan muncul setelah data keuangan dimuat.</p></div>
-                </div>
-
-
-                <!-- FINANCIAL SUMMARY TABLE -->
+                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-violet"><i class="fa-solid fa-chart-line"></i></div><div><p>Laba Bersih Estimasi</p><h3 id="dash-net-profit">Rp 0</h3></div></div><!-- FINANCIAL SUMMARY TABLE -->
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                         <div>
@@ -659,7 +631,7 @@
                 </div>
             </section>
 
-            <!-- 3b. VIEW DESIGN CENTER (CS ONLY) -->
+            <!-- 3b. VIEW DESIGN CENTER (CS & OWNER) -->
             <section id="view-design-center" class="space-y-6 hidden">
                 <div class="flex justify-between items-center">
                     <div>
@@ -1078,24 +1050,23 @@
                 
                 <!-- Password Management (Owner Only) -->
                 <div id="config-pwd-section" class="space-y-4 text-xs hidden">
-                    <p class="text-[10px] text-amber-600 bg-amber-50 p-2 rounded border border-amber-200">Hanya Owner yang dapat mengubah akses login sistem.</p>
+                    <p class="text-[10px] text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-200">Ganti password akun Owner yang sedang digunakan. Masukkan password lama untuk verifikasi. Password akun Customer Service dan Produksi dikelola terpisah melalui Supabase Auth.</p>
                     <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Password Customer Service (CS):</label>
-                        <input type="text" id="pwd-cs-input" type="password" class="w-full border p-2.5 rounded-lg text-xs">
+                        <label for="pwd-owner-current" class="font-semibold text-slate-700 block mb-1">Password Owner saat ini:</label>
+                        <input type="password" id="pwd-owner-current" autocomplete="current-password" required class="w-full border p-2.5 rounded-lg text-xs">
                     </div>
                     <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Password Divisi Produksi:</label>
-                        <input type="text" id="pwd-prod-input" type="password" class="w-full border p-2.5 rounded-lg text-xs">
+                        <label for="pwd-owner-new" class="font-semibold text-slate-700 block mb-1">Password baru:</label>
+                        <input type="password" id="pwd-owner-new" autocomplete="new-password" minlength="8" required class="w-full border p-2.5 rounded-lg text-xs">
                     </div>
                     <div>
-                        <label class="font-semibold text-slate-700 block mb-1">Password Owner Management:</label>
-                        <input type="password" id="pwd-owner-input" class="w-full border p-2.5 rounded-lg text-xs">
+                        <label for="pwd-owner-confirm" class="font-semibold text-slate-700 block mb-1">Ulangi password baru:</label>
+                        <input type="password" id="pwd-owner-confirm" autocomplete="new-password" minlength="8" required class="w-full border p-2.5 rounded-lg text-xs">
                     </div>
                     <div class="flex justify-end pt-2 border-t">
-                        <button onclick="savePasswords()" class="px-4 py-2 bg-slate-800 text-white rounded font-semibold w-full">Update Password Login</button>
+                        <button onclick="savePasswords()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold w-full">Simpan Password Baru</button>
                     </div>
-                </div>
-            </div>
+                </div>            </div>
         </div>
     </div>
 
@@ -2011,6 +1982,8 @@
             if (!status || !label) return;
             status.classList.remove('hidden');
             label.innerText = text;
+            status.title = text;
+            status.setAttribute('aria-label', text);
             const icon = status.querySelector('i');
             if (icon) {
                 icon.className = mode === 'ok'
@@ -2172,6 +2145,8 @@
             if (!status || !label) return;
             status.classList.remove('hidden');
             label.innerText = text;
+            status.title = text;
+            status.setAttribute('aria-label', text);
             const icon = status.querySelector('i');
             if (icon) {
                 icon.className = mode === 'ok'
@@ -2270,13 +2245,6 @@
 
         async function saveCustomerToCloud(customer) {
             return queueCloudSync('saveCustomer', { customer });
-        }
-
-        // Password tetap menunggu server: ini perubahan keamanan, bukan transaksi biasa.
-        async function savePasswordsToCloud(passwords) {
-            if (!isCloudConfigured() || !cloudSessionToken) return true;
-            const result = await cloudRequest('updatePasswords', { passwords });
-            return !!result.ok;
         }
 
         function scheduleFastRender() {
@@ -2437,6 +2405,7 @@
                 tabs = [
                     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
                     { id: 'daftar-pesanan', label: 'Pesanan', icon: 'fa-list-check' },
+                    { id: 'design-center', label: 'Design Center', icon: 'fa-palette' },
                     { id: 'produksi-kanban', label: 'Produksi & QC', icon: 'fa-diagram-project' },
                     { id: 'crm', label: 'Pelanggan', icon: 'fa-users' },
                     { id: 'pengeluaran', label: 'Keuangan', icon: 'fa-wallet' },
@@ -2444,9 +2413,12 @@
                     { id: 'stok', label: 'Stok & PO', icon: 'fa-boxes-stacked' },
                     { id: 'total-produksi', label: 'Laporan Produksi', icon: 'fa-chart-column' }
                 ];
-                // Show/hide owner specific elements
+                // Tampilkan identitas Owner di bagian bawah sidebar.
                 document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
+                const ownerProfile = document.getElementById('sidebar-owner-profile');
+                if (ownerProfile) ownerProfile.classList.remove('hidden');
             } else if (appData.role === 'cs') {
+                document.getElementById('sidebar-owner-profile')?.classList.add('hidden');
                 tabs = [
                     { id: 'cs-workspace', label: 'CS Workspace', icon: 'fa-house' },
                     { id: 'design-center', label: 'Design Center', icon: 'fa-palette' },
@@ -2456,6 +2428,7 @@
                 document.querySelectorAll('.owner-only').forEach(el => el.classList.add('hidden'));
                 document.getElementById('nav-notification-btn').classList.remove('hidden');
             } else { // produksi
+                document.getElementById('sidebar-owner-profile')?.classList.add('hidden');
                 tabs = [
                     { id: 'daftar-pengerjaan', label: 'Task Divisi Produksi', icon: 'fa-list-ol' },
                     { id: 'produksi-kanban', label: 'Board Workflow & QC', icon: 'fa-diagram-project' },
@@ -2667,7 +2640,7 @@
             }
             if(appData.role === 'owner') { renderExpenses(); if (document.getElementById('view-gaji-karyawan') && !document.getElementById('view-gaji-karyawan').classList.contains('hidden')) renderPayroll(); }
             if(appData.role === 'cs' || appData.role === 'owner') renderCRM();
-            if(appData.role === 'cs') renderDesignCenter();
+            if(appData.role === 'cs' || appData.role === 'owner') renderDesignCenter();
         }
 
         function renderCSWorkspace() {
@@ -4889,10 +4862,10 @@
                 return;
             }
 
-            // Pastikan nilai password terbaru ditampilkan di form.
-            document.getElementById('pwd-cs-input').value = '';
-            document.getElementById('pwd-prod-input').value = '';
-            document.getElementById('pwd-owner-input').value = '';
+            // Kosongkan field sensitif setiap kali form dibuka.
+            ['pwd-owner-current','pwd-owner-new','pwd-owner-confirm'].forEach(id => { const input = document.getElementById(id); if (input) input.value = ''; });
+            
+            
 
             // Buka modal konfigurasi langsung pada tab Ganti Password.
             openModal('modalCloudSync');
@@ -4908,9 +4881,9 @@
             
             // Pada Mode Cloud password tidak diambil dari localStorage.
             // Field dibiarkan kosong untuk mencegah password tersimpan di browser.
-            document.getElementById('pwd-cs-input').value = isCloudConfigured() ? '' : (appData.passwords.cs || '');
-            document.getElementById('pwd-prod-input').value = isCloudConfigured() ? '' : (appData.passwords.produksi || '');
-            document.getElementById('pwd-owner-input').value = isCloudConfigured() ? '' : (appData.passwords.owner || '');
+            ['pwd-owner-current','pwd-owner-new','pwd-owner-confirm'].forEach(id => { const input = document.getElementById(id); if (input) input.value = ''; });
+            
+            
 
             switchConfigTab('db');
             openModal('modalCloudSync');
@@ -5053,35 +5026,54 @@
                 return;
             }
 
-            const cs = document.getElementById('pwd-cs-input').value.trim();
-            const produksi = document.getElementById('pwd-prod-input').value.trim();
-            const owner = document.getElementById('pwd-owner-input').value.trim();
+            const currentPassword = document.getElementById('pwd-owner-current')?.value || '';
+            const newPassword = document.getElementById('pwd-owner-new')?.value || '';
+            const confirmPassword = document.getElementById('pwd-owner-confirm')?.value || '';
 
-            if (!cs || !produksi || !owner) {
-                showToast('Semua password harus diisi.', 'error');
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showToast('Lengkapi password saat ini dan password baru.', 'error');
+                return;
+            }
+            if (newPassword.length < 8) {
+                showToast('Password baru minimal 8 karakter.', 'error');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showToast('Ulangan password baru tidak cocok.', 'error');
+                return;
+            }
+            if (newPassword === currentPassword) {
+                showToast('Password baru harus berbeda dari password saat ini.', 'error');
                 return;
             }
 
+            const button = document.querySelector('#config-pwd-section button[onclick="savePasswords()"]');
+            const originalLabel = button?.innerHTML || 'Simpan Password Baru';
+            if (button) { button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...'; }
+
             try {
-                if (isCloudConfigured() && cloudSessionToken) {
-                    await savePasswordsToCloud({ cs, produksi, owner });
-                    // Password cloud tidak disimpan lagi di localStorage.
-                    appData.passwords = { cs: '', produksi: '', owner: '' };
-                    saveLocalState();
-                    showToast('Pengaturan password dikelola melalui Supabase Auth.', 'success');
-                } else {
-                    appData.passwords.cs = cs;
-                    appData.passwords.produksi = produksi;
-                    appData.passwords.owner = owner;
-                    saveLocalState();
-                    showToast('Password berhasil diubah pada Mode Lokal.', 'success');
-                }
+                const { error: verifyError } = await supabaseClient.auth.signInWithPassword({
+                    email: ROLE_AUTH_EMAIL.owner,
+                    password: currentPassword
+                });
+                if (verifyError) throw sbError(verifyError, 'Password saat ini tidak cocok.');
+
+                const { error: updateError } = await supabaseClient.auth.updateUser({ password: newPassword });
+                if (updateError) throw sbError(updateError, 'Password baru gagal disimpan.');
+
+                ['pwd-owner-current','pwd-owner-new','pwd-owner-confirm'].forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) input.value = '';
+                });
                 closeModal('modalCloudSync');
+                await handleLogout();
+                showToast('Password Owner berhasil diubah. Silakan masuk kembali dengan password baru.', 'success');
             } catch (err) {
-                showToast('Gagal mengubah password: ' + err.message, 'error');
+                showToast('Gagal mengubah password: ' + (err?.message || err), 'error');
+            } finally {
+                if (button) { button.disabled = false; button.innerHTML = originalLabel; }
             }
         }
-
         /* =========================================================
          * PRINT ENGINE V2 - FIX
          * Mencetak hanya dokumen yang sedang aktif di printable-area.
@@ -6158,5 +6150,79 @@
 #view-dashboard .stage-violet { color:#8a63e8; }
 #view-dashboard .stage-fill-violet { background:linear-gradient(90deg,#7655dc,#a27af5); }
 </style>
+<style>
+/* Owner dashboard refinements requested from the annotated reference. */
+.owner-topbar-user-hidden { display:none !important; }
+.sidebar-owner-profile { display:flex; align-items:center; gap:11px; margin:14px 2px 0; padding:14px 10px 15px; border-top:1px solid rgba(203,221,245,.14); color:#fff; font-size:15px; font-weight:800; letter-spacing:.02em; }
+.sidebar-owner-profile i { width:25px; color:#fff; font-size:23px; text-align:center; }
+#view-dashboard .dashboard-period-toolbar { width:min(760px,100%); margin-left:auto; align-items:stretch; flex-direction:column; }
+#view-dashboard .dashboard-period-toolbar > div:first-child { width:100%; flex:none; }
+#view-dashboard #finance-period-select { width:100%; max-width:none; }
+#view-dashboard .dashboard-period-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; }
+#view-dashboard .dashboard-donut-wrap { height:190px; max-width:250px; margin:2px auto 12px; }
+#view-dashboard .dashboard-stage-label b { color:#087fca; font-size:12px; font-weight:800; }
+#view-dashboard .dashboard-stage-row:nth-child(2) .dashboard-stage-label b { color:#d88912; }
+#view-dashboard .dashboard-stage-row:nth-child(3) .dashboard-stage-label b { color:#0b9f73; }
+#view-dashboard .dashboard-production-breakdown { gap:13px; }
+@media (max-width:767px) {
+  #view-dashboard .dashboard-period-toolbar { width:100%; margin-left:0; }
+  #view-dashboard .dashboard-kpi-overview { grid-template-columns:1fr; }
+  #view-dashboard .dashboard-period-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #view-dashboard .dashboard-period-actions button { justify-content:center; }
+  #view-dashboard .dashboard-donut-wrap { height:180px; max-width:230px; }
+}
+</style>
+<style>
+/* Sidebar quick actions stay icon-only; titles provide a short hover label. */
+.sidebar-toolbox { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); align-items:center; gap:8px; padding:14px 3px 8px; border-top:1px solid rgba(203,221,245,.14); }
+.sidebar-tool-button, .sidebar-cloud-status { display:grid; place-items:center; position:relative; width:40px; height:40px; margin:0 auto; border:1px solid rgba(203,221,245,.14); border-radius:12px; color:#d5e3f7; background:rgba(255,255,255,.07); font-size:15px; transition:background .16s ease, transform .16s ease, color .16s ease; }
+.sidebar-tool-button:hover { transform:translateY(-1px); background:rgba(255,255,255,.15); color:#fff; }
+.sidebar-tool-button.hidden, .sidebar-cloud-status.hidden { display:none !important; }
+.sidebar-tool-config { color:#63c5ff; }
+.sidebar-tool-notification { color:#a9bcff; }
+.sidebar-tool-logout { color:#ff9a9f; }
+.sidebar-cloud-status:not(.hidden) { display:grid; }
+.sidebar-cloud-status i { margin:0 !important; font-size:16px; }
+.sidebar-owner-profile { margin-top:5px; padding-top:13px; }
+#view-dashboard.space-y-6 > * + * { margin-top:20px; }
+#view-dashboard > .dashboard-heading-row { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
+#view-dashboard .dashboard-overview-grid { align-items:stretch; }
+#view-dashboard .dashboard-period-toolbar { display:flex; flex-direction:column; justify-content:space-between; width:100%; min-height:100%; margin:0; padding:20px; gap:18px; }
+#view-dashboard .dashboard-period-toolbar select { min-height:56px; font-size:15px; }
+#view-dashboard .dashboard-kpi-overview { grid-template-columns:repeat(2,minmax(0,1fr)); align-content:stretch; }
+#view-dashboard .dashboard-period-toolbar > div:first-child { width:100%; flex:none; }
+#view-dashboard .dashboard-period-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+#view-dashboard .dashboard-kpi-grid { gap:14px; }
+#view-dashboard .dashboard-kpi-grid > div { min-height:100px; padding:17px 19px; }
+#view-dashboard .dashboard-visual-grid { gap:16px; }
+@media (min-width:1101px) {
+  #view-dashboard .dashboard-trend-panel { grid-column:span 5; }
+  #view-dashboard .dashboard-production-panel { grid-column:span 3; }
+  #view-dashboard .dashboard-activity-panel { grid-column:span 4; }
+}
+#view-dashboard .dashboard-panel { height:100%; padding:20px; }
+#view-dashboard .dashboard-chart-wrap { height:280px; }
+#view-dashboard .dashboard-donut-wrap { height:180px; max-width:220px; margin:4px auto 14px; }
+#view-dashboard .dashboard-stage-label b { font-size:12px; }
+#view-dashboard .dashboard-orders-panel { margin-top:0; }
+#view-dashboard .dashboard-finance-detail-heading { margin-top:2px; }
+#view-dashboard .dashboard-finance-detail-card { min-height:100px; }
+@media (max-width:767px) {
+  .sidebar-toolbox { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:12px 0 6px; }
+  .sidebar-owner-profile { justify-content:center; padding-left:0; padding-right:0; }
+  .sidebar-owner-profile span { display:none; }
+  .sidebar-tool-button, .sidebar-cloud-status { width:36px; height:36px; }
+  #view-dashboard.space-y-6 > * + * { margin-top:16px; }
+  #view-dashboard > .dashboard-heading-row { align-items:flex-start; flex-direction:column; gap:12px; }
+  #view-dashboard .dashboard-period-toolbar { width:100%; margin:0; padding:14px; min-height:0; }
+  #view-dashboard .dashboard-kpi-overview { grid-template-columns:1fr; }
+  #view-dashboard .dashboard-period-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #view-dashboard .dashboard-period-actions button { justify-content:center; }
+  #view-dashboard .dashboard-panel { padding:16px; }
+  #view-dashboard .dashboard-chart-wrap { height:230px; }
+  #view-dashboard .dashboard-donut-wrap { height:175px; }
+}
+</style>
 </body>
 </html>
+
