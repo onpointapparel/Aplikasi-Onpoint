@@ -401,8 +401,11 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                     <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-teal"><i class="fa-solid fa-money-bill-transfer"></i></div><div><p>Kas Masuk</p><h3 id="dash-cash-in">Rp 0</h3></div></div>
                     <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-coral"><i class="fa-solid fa-clock-rotate-left"></i></div><div><p>Sisa Piutang</p><h3 id="dash-receivables">Rp 0</h3></div></div>
-                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-violet"><i class="fa-solid fa-chart-line"></i></div><div><p>Laba Bersih Estimasi</p><h3 id="dash-net-profit">Rp 0</h3></div></div><!-- FINANCIAL SUMMARY TABLE -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="dashboard-finance-mini"><div class="dashboard-finance-mini-icon mini-violet"><i class="fa-solid fa-chart-line"></i></div><div><p>Laba Bersih Estimasi</p><h3 id="dash-net-profit">Rp 0</h3></div></div>
+                </div>
+                <!-- FINANCIAL SUMMARY TABLE -->
+                <div class="dashboard-profit-loss-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+
                     <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                         <div>
                             <h3 class="text-lg font-bold text-slate-800">Laporan Laba / Rugi & Rincian Modal</h3>
@@ -410,8 +413,8 @@
                         </div>
                         <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full">Real-time Calculated</span>
                     </div>
-                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                        <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="dashboard-profit-loss-grid p-6 grid grid-cols-1 xl:grid-cols-2 gap-5 text-sm">
+                        <div class="dashboard-profit-loss-column space-y-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
                             <h4 class="font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-arrow-down-long text-emerald-600"></i> Pemasukan & Omset
                             </h4>
@@ -429,7 +432,7 @@
                             </div>
                         </div>
 
-                        <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="dashboard-profit-loss-column space-y-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
                             <h4 class="font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                                 <i class="fa-solid fa-arrow-up-long text-rose-600"></i> Beban Modal & Operasional
                             </h4>
@@ -2193,24 +2196,40 @@
 
                 const localFinancePeriods = Array.isArray(appData.financePeriods) ? appData.financePeriods : [];
                 const cloudFinancePeriods = Array.isArray(d.financePeriods) ? d.financePeriods : [];
-                if (cloudFinancePeriods.length) {
-                    // Data cloud adalah sumber utama agar semua perangkat menampilkan periode yang sama.
-                    appData.financePeriods = cloudFinancePeriods;
-                    const selectedStillExists = cloudFinancePeriods.some(p => String(p.id) === String(appData.selectedFinancePeriodId));
-                    if (!selectedStillExists) {
-                        const activePeriod = cloudFinancePeriods
-                            .filter(p => !p.endDate)
-                            .sort((a,b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))[0];
-                        appData.selectedFinancePeriodId = activePeriod?.id || 'all';
-                    }
-                } else if (localFinancePeriods.length) {
-                    // Migrasi satu kali: periode yang sebelumnya hanya ada di perangkat lama
-                    // dikirim ke Supabase jika belum ada salinan cloud.
-                    appData.financePeriods = localFinancePeriods;
-                    await cloudRequest('saveFinancePeriods', { periods: localFinancePeriods });
-                } else {
-                    appData.financePeriods = [];
-                    appData.selectedFinancePeriodId = 'all';
+
+                // Gabungkan data lokal dan cloud. Jangan pernah menghapus periode lokal
+                // hanya karena cloud sudah memiliki periode lain. Ini penting untuk
+                // memulihkan periode lama (misalnya November) yang belum sempat tersinkron.
+                const mergedById = new Map();
+                localFinancePeriods.forEach(period => {
+                    if (!period || period.id == null) return;
+                    mergedById.set(String(period.id), { ...period });
+                });
+                cloudFinancePeriods.forEach(period => {
+                    if (!period || period.id == null) return;
+                    const key = String(period.id);
+                    mergedById.set(key, { ...(mergedById.get(key) || {}), ...period });
+                });
+                const mergedFinancePeriods = Array.from(mergedById.values())
+                    .sort((a,b) => String(a.startDate || '').localeCompare(String(b.startDate || '')));
+                appData.financePeriods = mergedFinancePeriods;
+
+                // Jika hasil gabungan berbeda dari cloud, kirim gabungan tersebut
+                // agar periode lama dari perangkat asal tersedia di semua perangkat.
+                const cloudSnapshot = JSON.stringify(cloudFinancePeriods.slice().sort((a,b) => String(a?.startDate || '').localeCompare(String(b?.startDate || ''))));
+                const mergedSnapshot = JSON.stringify(mergedFinancePeriods);
+                if (mergedSnapshot !== cloudSnapshot && mergedFinancePeriods.length) {
+                    await cloudRequest('saveFinancePeriods', { periods: mergedFinancePeriods });
+                }
+
+                // Pertahankan pilihan periode yang sedang dipilih jika masih tersedia.
+                // Jika belum, pilih periode aktif terbaru; jika tidak ada, tampilkan semua riwayat.
+                const selectedStillExists = appData.financePeriods.some(p => String(p.id) === String(appData.selectedFinancePeriodId));
+                if (!selectedStillExists) {
+                    const activePeriod = appData.financePeriods
+                        .filter(p => !p.endDate)
+                        .sort((a,b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))[0];
+                    appData.selectedFinancePeriodId = activePeriod?.id || 'all';
                 }
 
                 if (result.config?.driveFolderId) appData.driveFolder = result.config.driveFolderId;
@@ -5546,6 +5565,22 @@
 #view-dashboard .stage-violet { color:#8a63e8; }
 #view-dashboard .stage-fill-violet { background:linear-gradient(90deg,#7655dc,#a27af5); }
 </style>
+
+<style>
+/* Laporan laba/rugi: full-width horizontal layout, independent from the KPI grid. */
+#view-dashboard .dashboard-profit-loss-card { display:block; width:100%; min-width:0; grid-column:1 / -1; border-radius:20px; box-shadow:0 8px 24px rgba(31,55,91,.07); }
+#view-dashboard .dashboard-profit-loss-card > div:first-child { gap:18px; }
+#view-dashboard .dashboard-profit-loss-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; gap:18px; }
+#view-dashboard .dashboard-profit-loss-column { min-width:0; padding:20px; border-radius:15px; }
+#view-dashboard .dashboard-profit-loss-column h4 { min-height:34px; font-size:14px; }
+#view-dashboard .dashboard-profit-loss-column > div { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:7px 0; }
+#view-dashboard .dashboard-profit-loss-column > div span:first-child { min-width:0; color:#5b6b82; line-height:1.5; }
+#view-dashboard .dashboard-profit-loss-column > div span:last-child { flex:0 0 auto; text-align:right; white-space:nowrap; font-weight:800; }
+#view-dashboard .dashboard-profit-loss-column > div:last-child { align-items:center; margin-top:5px; padding-top:13px; }
+@media (max-width:900px) { #view-dashboard .dashboard-profit-loss-grid { grid-template-columns:1fr; } }
+@media (max-width:520px) { #view-dashboard .dashboard-profit-loss-card > div:first-child { align-items:flex-start; flex-direction:column; } #view-dashboard .dashboard-profit-loss-card > div:first-child > span { align-self:flex-start; } #view-dashboard .dashboard-profit-loss-grid { padding:14px; gap:12px; } #view-dashboard .dashboard-profit-loss-column { padding:15px; } #view-dashboard .dashboard-profit-loss-column > div { gap:10px; } }
+</style>
+
 </body>
 </html>`);
             printWindow.document.close();
