@@ -1712,6 +1712,7 @@
                 el.innerHTML = '<div class="p-3 text-center text-[10px] text-slate-400">Belum ada pembayaran.</div>';
                 return;
             }
+            const canDeletePayment = ['cs', 'owner'].includes(String(appData.role || '').toLowerCase());
             el.innerHTML = payments.map(p => `
                 <div class="p-2.5">
                     <div class="flex justify-between gap-2 items-start">
@@ -1720,10 +1721,66 @@
                             <div class="text-[9px] text-slate-400">${formatPaymentDate(p.date)} • ${p.paymentType || 'Pembayaran'} • ${p.method || '-'}</div>
                             ${p.note ? `<div class="text-[9px] text-slate-500 mt-0.5">${p.note}</div>` : ''}
                         </div>
-                        <div class="font-black text-[10px] text-emerald-600 whitespace-nowrap">${formatRp(p.amount)}</div>
+                        <div class="flex flex-col items-end gap-1 shrink-0">
+                            <div class="font-black text-[10px] text-emerald-600 whitespace-nowrap">${formatRp(p.amount)}</div>
+                            ${canDeletePayment ? `<button type="button" onclick="deletePayment('${String(p.id || '').replace(/'/g, "\\'")}')" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 text-[9px] font-bold" title="Hapus transaksi pembayaran"><i class="fa-solid fa-trash"></i><span>Hapus</span></button>` : ''}
+                        </div>
                     </div>
                 </div>
             `).join('');
+        }
+
+        async function deletePayment(paymentId) {
+            const orderId = document.getElementById('pay-order-id')?.value;
+            const o = appData.orders.find(item => String(item.id) === String(orderId));
+            if (!o) return showToast('Order tidak ditemukan.', 'error');
+            const payment = (Array.isArray(o.payments) ? o.payments : []).find(p => String(p.id) === String(paymentId));
+            if (!payment) return showToast('Transaksi pembayaran tidak ditemukan.', 'error');
+            if (!['cs', 'owner'].includes(String(appData.role || '').toLowerCase())) {
+                return showToast('Akses hapus pembayaran tidak diizinkan.', 'error');
+            }
+
+            const confirmed = window.confirm(
+                `Hapus transaksi pembayaran ini?\\n\\n${payment.payerName || 'Customer'}\\n${formatPaymentDate(payment.date)}\\nNominal: ${formatRp(payment.amount)}\\n\\nTotal pembayaran dan sisa tagihan order akan dihitung ulang.`
+            );
+            if (!confirmed) return;
+
+            try {
+                // Batalkan job simpan yang belum diproses agar transaksi yang dihapus
+                // tidak muncul kembali setelah antrean sinkronisasi berjalan.
+                if (Array.isArray(fastSyncQueue)) {
+                    fastSyncQueue = fastSyncQueue.filter(job =>
+                        !(job.action === 'savePayment' && String(job.payload?.payment?.id) === String(paymentId))
+                    );
+                    persistFastSyncQueue();
+                }
+
+                // Hapus di Supabase terlebih dahulu. Jika gagal, data lokal tidak disentuh.
+                if (isCloudConfigured()) {
+                    if (!cloudSessionToken) throw new Error('Sesi cloud tidak tersedia. Silakan login kembali.');
+                    await cloudRequest('deletePayment', { id: paymentId });
+                }
+
+                o.payments = (Array.isArray(o.payments) ? o.payments : [])
+                    .filter(p => String(p.id) !== String(paymentId));
+
+                // DP awal juga tersimpan pada kolom orders.dp untuk kompatibilitas data lama.
+                // Nolkan kolom tersebut agar nominal DP yang dihapus tidak tetap terhitung.
+                const isInitialDp = String(payment.paymentType || payment.payment_type || '').toLowerCase() === 'dp awal';
+                if (isInitialDp) {
+                    o.dp = 0;
+                    if (isCloudConfigured()) await saveOrderToCloud(o);
+                }
+
+                saveLocalState();
+                renderPaymentHistory(o);
+                document.getElementById('pay-dp-val').innerText = formatRp(getOrderTotalPaid(o));
+                document.getElementById('pay-sisa-val').innerText = formatRp(Math.max(0, Number(o.totalPrice || 0) - getOrderTotalPaid(o)));
+                document.getElementById('pay-status-val').innerText = getPaymentStatus(o);
+                showToast(`Pembayaran ${formatRp(payment.amount)} berhasil dihapus.`, 'success');
+            } catch (err) {
+                showToast('Gagal menghapus pembayaran: ' + err.message, 'error');
+            }
         }
 
         function orderToRow(o) {
@@ -1784,7 +1841,22 @@
                 const labels = ['orders','order_items','payments','customers','expenses','stock','defects'];
                 results.forEach((r,i) => { if (r.error) throw sbError(r.error, `Gagal memuat ${labels[i]}.`); });
                 const [orders, items, payments, customers, expenses, stock, defects] = results.map(r => r.data || []);
+
+                // Periode keuangan harus disimpan bersama di Supabase, bukan hanya LocalStorage.
+                const { data: financeSetting, error: financeSettingError } = await supabaseClient
+                    .from('settings').select('value').eq('key', 'finance_periods_v1').maybeSingle();
+                if (financeSettingError) throw sbError(financeSettingError, 'Gagal memuat periode keuangan bersama dari Supabase.');
+                let financePeriods = [];
+                if (financeSetting?.value) {
+                    try {
+                        const parsedPeriods = JSON.parse(financeSetting.value);
+                        financePeriods = Array.isArray(parsedPeriods) ? parsedPeriods : [];
+                    } catch (_) {
+                        throw new Error('Data periode keuangan di Supabase tidak valid (format JSON).');
+                    }
+                }
                 return { ok: true, data: {
+                    financePeriods,
                     orders: orders.map(o => normalizeOrderFromSupabase(o, items, payments)),
                     payments,
                     customers,
@@ -1868,6 +1940,41 @@
                 return { ok:true };
             }
 
+            if (action === 'deletePayment') {
+                const id = String(payload.id || '');
+                if (!id) throw new Error('ID pembayaran wajib diisi.');
+
+                // Ambil detail transaksi sebelum dihapus untuk koreksi DP awal.
+                const { data: paymentRow, error: readError } = await supabaseClient
+                    .from('payments')
+                    .select('payment_id,order_id,payment_type,note')
+                    .eq('payment_id', id)
+                    .maybeSingle();
+                if (readError) throw sbError(readError, 'Gagal memeriksa transaksi pembayaran.');
+                if (!paymentRow) throw new Error('Transaksi tidak ditemukan di database atau akses ditolak.');
+
+                const { data: deletedRows, error: deleteError } = await supabaseClient
+                    .from('payments')
+                    .delete()
+                    .eq('payment_id', id)
+                    .select('payment_id');
+                if (deleteError) throw sbError(deleteError, 'Gagal menghapus pembayaran.');
+                if (!deletedRows || !deletedRows.length) {
+                    throw new Error('Pembayaran tidak terhapus. Periksa izin DELETE/RLS pada tabel payments.');
+                }
+
+                // DP awal juga dicatat pada kolom orders.dp. Sinkronkan nilainya
+                // agar tidak tetap masuk hitungan setelah transaksi DP awal dihapus.
+                if (String(paymentRow.payment_type || '').toLowerCase() === 'dp awal') {
+                    const { error: orderError } = await supabaseClient
+                        .from('orders')
+                        .update({ dp: 0, updated_at: new Date().toISOString() })
+                        .eq('order_id', paymentRow.order_id);
+                    if (orderError) throw sbError(orderError, 'Pembayaran terhapus, tetapi kolom DP order gagal diperbarui.');
+                }
+                return { ok:true };
+            }
+
             if (action === 'deleteExpense') {
                 const id = payload.id;
                 const { error } = await supabaseClient.from('expenses').delete().eq('expense_id', id);
@@ -1904,6 +2011,17 @@
             if (action === 'markNotificationsRead') {
                 const ids = payload.ids || [];
                 if (ids.length) { const { error } = await supabaseClient.from('notifications').update({ read_at:new Date().toISOString() }).in('notification_id', ids); if (error) throw sbError(error,'Gagal menandai notifikasi.'); }
+                return { ok:true };
+            }
+            if (action === 'saveFinancePeriods') {
+                const periods = Array.isArray(payload.periods) ? payload.periods : [];
+                const serialized = JSON.stringify(periods);
+                const { error } = await supabaseClient.from('settings').upsert({
+                    key: 'finance_periods_v1',
+                    value: serialized,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'key' });
+                if (error) throw sbError(error, 'Gagal menyimpan periode keuangan bersama.');
                 return { ok:true };
             }
             if (action === 'saveSettings') {
@@ -2072,6 +2190,28 @@
                     status: x.status || 'Open'
                 })) : [];
                 appData.customers = Array.isArray(d.customers) ? d.customers : [];
+
+                const localFinancePeriods = Array.isArray(appData.financePeriods) ? appData.financePeriods : [];
+                const cloudFinancePeriods = Array.isArray(d.financePeriods) ? d.financePeriods : [];
+                if (cloudFinancePeriods.length) {
+                    // Data cloud adalah sumber utama agar semua perangkat menampilkan periode yang sama.
+                    appData.financePeriods = cloudFinancePeriods;
+                    const selectedStillExists = cloudFinancePeriods.some(p => String(p.id) === String(appData.selectedFinancePeriodId));
+                    if (!selectedStillExists) {
+                        const activePeriod = cloudFinancePeriods
+                            .filter(p => !p.endDate)
+                            .sort((a,b) => String(b.startDate || '').localeCompare(String(a.startDate || '')))[0];
+                        appData.selectedFinancePeriodId = activePeriod?.id || 'all';
+                    }
+                } else if (localFinancePeriods.length) {
+                    // Migrasi satu kali: periode yang sebelumnya hanya ada di perangkat lama
+                    // dikirim ke Supabase jika belum ada salinan cloud.
+                    appData.financePeriods = localFinancePeriods;
+                    await cloudRequest('saveFinancePeriods', { periods: localFinancePeriods });
+                } else {
+                    appData.financePeriods = [];
+                    appData.selectedFinancePeriodId = 'all';
+                }
 
                 if (result.config?.driveFolderId) appData.driveFolder = result.config.driveFolderId;
                 saveLocalState();
@@ -2835,6 +2975,14 @@
             const recordedBalance = (allHistory ? 0 : Number(period.openingBalance || 0)) + cashIn - totalExp;
             return { totalOmset, cashIn, totalHpp, totalExp, receivables, netProfit, recordedBalance, allHistory };
         }
+        async function saveFinancePeriodsToCloud() {
+            if (!isCloudConfigured() || !cloudSessionToken) {
+                throw new Error('Sesi cloud belum tersedia. Silakan login kembali sebelum menyimpan periode.');
+            }
+            const periods = Array.isArray(appData.financePeriods) ? appData.financePeriods : [];
+            await cloudRequest('saveFinancePeriods', { periods });
+        }
+
         function refreshFinancePeriodOptions() {
             const select = document.getElementById('finance-period-select');
             if (!select) return;
@@ -2862,7 +3010,7 @@
             document.getElementById('finance-period-opening').value = '';
             openModal('modalFinancePeriod');
         }
-        function createFinancePeriod(event) {
+        async function createFinancePeriod(event) {
             event.preventDefault();
             const startDate = document.getElementById('finance-period-start').value;
             const openingBalance = Number(document.getElementById('finance-period-opening').value);
@@ -2874,10 +3022,21 @@
             saveLocalState();
             refreshFinancePeriodOptions();
             renderDashboard();
-            closeModal('modalFinancePeriod');
-            showToast('Periode baru tersimpan. Data transaksi lama tetap utuh.', 'success');
+            try {
+                await saveFinancePeriodsToCloud();
+                closeModal('modalFinancePeriod');
+                showToast('Periode baru berhasil disimpan ke Supabase dan tersedia di perangkat lain.', 'success');
+            } catch (err) {
+                // Rollback local change so UI does not claim a cloud save that failed.
+                appData.financePeriods = appData.financePeriods.filter(p => String(p.id) !== String(period.id));
+                appData.selectedFinancePeriodId = appData.financePeriods.find(p => !p.endDate)?.id || 'all';
+                saveLocalState();
+                refreshFinancePeriodOptions();
+                renderDashboard();
+                showToast('Periode gagal disimpan ke cloud: ' + err.message, 'error');
+            }
         }
-        function closeFinancePeriod() {
+        async function closeFinancePeriod() {
             const period = financePeriodById(appData.selectedFinancePeriodId);
             if (!period || period.endDate) { showToast('Pilih periode aktif yang ingin ditutup.', 'error'); return; }
             const closeDate = prompt('Tanggal akhir periode (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
@@ -2885,11 +3044,22 @@
             if (closeDate < period.startDate) { showToast('Tanggal akhir tidak boleh sebelum tanggal mulai.', 'error'); return; }
             const closingText = prompt('Masukkan saldo kas dan rekening aktual yang sudah dicocokkan (Rp):', '');
             if (closingText === null || closingText.trim() === '' || !Number.isFinite(Number(closingText)) || Number(closingText) < 0) { showToast('Saldo aktual belum valid; periode tidak ditutup.', 'error'); return; }
+
+            const previousPeriods = JSON.parse(JSON.stringify(appData.financePeriods || []));
             period.endDate = closeDate;
             period.actualClosingBalance = Number(closingText);
             saveLocalState();
             refreshFinancePeriodOptions();
             renderDashboard();
+            try {
+                await saveFinancePeriodsToCloud();
+            } catch (err) {
+                appData.financePeriods = previousPeriods;
+                saveLocalState(); refreshFinancePeriodOptions(); renderDashboard();
+                showToast('Periode gagal diarsipkan ke cloud: ' + err.message, 'error');
+                return;
+            }
+
             if (confirm('Periode telah diarsipkan. Buat periode lanjutan dengan saldo akhir aktual sebagai saldo awal?')) {
                 const next = new Date(`${closeDate}T12:00:00`); next.setDate(next.getDate()+1);
                 const nextDate = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
@@ -2897,6 +3067,15 @@
                 appData.financePeriods.push(newPeriod);
                 appData.selectedFinancePeriodId = newPeriod.id;
                 saveLocalState(); refreshFinancePeriodOptions(); renderDashboard();
+                try {
+                    await saveFinancePeriodsToCloud();
+                    showToast('Periode lanjutan berhasil disimpan ke Supabase.', 'success');
+                } catch (err) {
+                    appData.financePeriods = appData.financePeriods.filter(p => String(p.id) !== String(newPeriod.id));
+                    appData.selectedFinancePeriodId = period.id;
+                    saveLocalState(); refreshFinancePeriodOptions(); renderDashboard();
+                    showToast('Periode lanjutan gagal disimpan ke cloud: ' + err.message, 'error');
+                }
             }
         }
         function exportFinanceArchive() {
