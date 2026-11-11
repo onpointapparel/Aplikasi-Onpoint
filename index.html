@@ -221,7 +221,7 @@
             <button id="nav-notification-btn" onclick="toggleCSNotificationPanel()" class="hidden sidebar-tool-button sidebar-tool-notification relative" title="Notifikasi" aria-label="Notifikasi"><i class="fa-regular fa-bell"></i><span id="global-notif-badge" class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] text-white">0</span></button>
             <button onclick="handleLogout()" class="sidebar-tool-button sidebar-tool-logout" title="Keluar" aria-label="Keluar"><i class="fa-solid fa-right-from-bracket"></i></button>
         </div>
-        <div id="sidebar-owner-profile" class="sidebar-owner-profile hidden" title="Owner" aria-label="Owner"><i class="fa-solid fa-user"></i><span>Owner</span></div>
+        <button id="sidebar-owner-profile" type="button" class="sidebar-owner-profile hidden" onclick="openNewOrderFromWorkspace()" title="Buat Order Baru" aria-label="Buat Order Baru"><i class="fa-solid fa-cart-plus"></i><span>Buat Order</span></button>
         <span id="current-user-badge" class="sr-only">Customer Service</span>
         <div class="sidebar-footer"><span class="sidebar-status-dot"></span><span>Sistem operasional</span></div>
     </aside>
@@ -2572,10 +2572,10 @@
                     { id: 'stok', label: 'Stok & PO', icon: 'fa-boxes-stacked' },
                     { id: 'total-produksi', label: 'Laporan Produksi', icon: 'fa-chart-column' }
                 ];
-                // Tampilkan identitas Owner di bagian bawah sidebar.
+                // Tombol Buat Order hanya tersedia pada sistem Owner Management.
                 document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
-                const ownerProfile = document.getElementById('sidebar-owner-profile');
-                if (ownerProfile) ownerProfile.classList.remove('hidden');
+                const ownerOrderButton = document.getElementById('sidebar-owner-profile');
+                if (ownerOrderButton) ownerOrderButton.classList.remove('hidden');
             } else if (appData.role === 'cs') {
                 document.getElementById('sidebar-owner-profile')?.classList.add('hidden');
                 tabs = [
@@ -6367,8 +6367,10 @@
 <style>
 /* Owner dashboard refinements requested from the annotated reference. */
 .owner-topbar-user-hidden { display:none !important; }
-.sidebar-owner-profile { display:flex; align-items:center; gap:11px; margin:14px 2px 0; padding:14px 10px 15px; border-top:1px solid rgba(203,221,245,.14); color:#fff; font-size:15px; font-weight:800; letter-spacing:.02em; }
-.sidebar-owner-profile i { width:25px; color:#fff; font-size:23px; text-align:center; }
+.sidebar-owner-profile { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin:14px 2px 0; padding:13px 12px; border:1px solid rgba(125,211,252,.28); border-radius:12px; background:linear-gradient(135deg,#0ea5e9,#2563eb); color:#fff; font-size:14px; font-weight:800; letter-spacing:.01em; cursor:pointer; box-shadow:0 7px 18px rgba(14,165,233,.18); transition:filter .16s ease, transform .16s ease; }
+.sidebar-owner-profile:hover { filter:brightness(1.08); transform:translateY(-1px); }
+.sidebar-owner-profile i { width:22px; color:#fff; font-size:17px; text-align:center; }
+.sidebar-owner-profile.hidden { display:none !important; }
 #view-dashboard .dashboard-period-toolbar { width:min(760px,100%); margin-left:auto; align-items:stretch; flex-direction:column; }
 #view-dashboard .dashboard-period-toolbar > div:first-child { width:100%; flex:none; }
 #view-dashboard #finance-period-select { width:100%; max-width:none; }
@@ -6423,8 +6425,7 @@
 #view-dashboard .dashboard-finance-detail-card { min-height:100px; }
 @media (max-width:767px) {
   .sidebar-toolbox { grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:12px 0 6px; }
-  .sidebar-owner-profile { justify-content:center; padding-left:0; padding-right:0; }
-  .sidebar-owner-profile span { display:none; }
+  .sidebar-owner-profile { justify-content:center; padding:11px 6px; font-size:12px; }
   .sidebar-tool-button, .sidebar-cloud-status { width:36px; height:36px; }
   #view-dashboard.space-y-6 > * + * { margin-top:16px; }
   #view-dashboard > .dashboard-heading-row { align-items:flex-start; flex-direction:column; gap:12px; }
